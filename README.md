@@ -6,6 +6,7 @@ Uses LangChain and GPT-4 to chat with the ACMI Public API collection.
 
 * Build the virtual environment: `make build`
 * Setup your OpenAI API Key: `cp template.envrc .envrc`
+* Install direnv if you'd like to load API Keys from the `.envrc` file: `brew install direnv`
 * Load the environment `direnv allow`
 * Start chatting: `make up`
 
