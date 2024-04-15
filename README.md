@@ -15,6 +15,14 @@ Or if you have your own Python environment setup:
 * Install the dependencies: `pip install -r requirements.txt`
 * Start chatting: `python chat.py`
 
+### Build all
+
+By default we only build the first ten pages of the Public API into the vector database, but if you'd like the build the entire collection:
+
+* Add `ALL=true` to your `.envrc`
+* Then either delete your persistant directory or also add `REBUILD=true` to your `.envrc`
+* Rebuild the app: `make build`
+
 ## Run it on Google Colab
 
 Chat with the first page of the ACMI Public API: [Google Colab](https://colab.research.google.com/drive/1RLe2LliEE63KaQgxXDv3xccmxCYpmmPx).

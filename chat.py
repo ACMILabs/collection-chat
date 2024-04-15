@@ -9,8 +9,10 @@ Colab prototype: https://colab.research.google.com/drive/1RLe2LliEE63KaQgxXDv3xc
 
 import json
 import os
+import openai
 import requests
 
+from furl import furl
 from langchain_community.document_loaders import JSONLoader
 from langchain_community.vectorstores import Chroma
 from langchain_openai import OpenAIEmbeddings
@@ -28,6 +30,7 @@ COLLECTION_NAME = os.getenv('COLLECTION_NAME', 'works')
 PERSIST_DIRECTORY = os.getenv('PERSIST_DIRECTORY', 'works_db')
 REBUILD = os.getenv('REBUILD', 'false').lower() == 'true'
 HISTORY = os.getenv('HISTORY', 'true').lower() == 'true'
+ALL = os.getenv('ALL', 'false').lower() == 'true'
 
 # Set true if you'd like langchain tracing via LangSmith https://smith.langchain.com
 os.environ['LANGCHAIN_TRACING_V2'] = 'false'
@@ -40,18 +43,41 @@ docsearch = Chroma(
 )
 
 if len(docsearch) < 1 or REBUILD:
-    # First 10 pages of works on the ACMI Public API
-    PAGES = 10
     json_data = {
         'results': [],
     }
-    for index in range(2, (PAGES + 1)):
-        page_data = requests.get(
-            'https://api.acmi.net.au/works/',
-            params={'page': index},
-            timeout=10,
-        ).json()
-        json_data['results'].extend(page_data['results'])
+    params = {'page': ''}
+    if ALL:
+        print('Loading all of the works from the ACMI Public API')
+        while True:
+            page_data = requests.get(
+                'https://api.acmi.net.au/works/',
+                params=params,
+                timeout=10,
+            ).json()
+            json_data['results'].extend(page_data['results'])
+            if not page_data.get('next'):
+                break
+            params['page'] = furl(page_data.get('next')).args.get('page')
+            if len(json_data['results']) % 1000 == 0:
+                print(f'Downloaded {len(json_data["results"])}...')
+    else:
+        print('Loading the first ten pages of works from the ACMI Public API')
+        PAGES = 10
+        json_data = {
+            'results': [],
+        }
+        for index in range(1, (PAGES + 1)):
+            page_data = requests.get(
+                'https://api.acmi.net.au/works/',
+                params=params,
+                timeout=10,
+            )
+            json_data['results'].extend(page_data.json()['results'])
+            print(f'Downloaded {page_data.request.url}')
+            params['page'] = furl(page_data.json().get('next')).args.get('page')
+    print(f'Finished downloading {len(json_data["results"])} works.')
+
     TMP_FILE_PATH = 'data.json'
     with open(TMP_FILE_PATH, 'w', encoding='utf-8') as json_file:
         json.dump(json_data, json_file)
@@ -61,8 +87,23 @@ if len(docsearch) < 1 or REBUILD:
         text_content=False,
     )
     data = json_loader.load()
+
+    # Add source metadata
     for i, item in enumerate(data):
         item.metadata['source'] = f'https://api.acmi.net.au/works/{json_data["results"][i]["id"]}'
+
+    def chunks(input_list, number_per_chunk):
+        """Yield successive chunks from the input_list."""
+        for idx in range(0, len(input_list), number_per_chunk):
+            yield input_list[idx:idx + number_per_chunk]
+
+    # Add to the vector database in chunks to avoid OpenAI rate limits
+    for i, sublist in enumerate(chunks(data, 10)):
+        docsearch.add_documents(
+            sublist,
+        )
+        print(f'Added {len(sublist)} items to the database... total {(i + 1) * len(sublist)}')
+    print(f'Finished adding {len(data)} items to the database')
 
     docsearch = Chroma.from_documents(
         data,
@@ -71,7 +112,7 @@ if len(docsearch) < 1 or REBUILD:
         persist_directory=PERSIST_DIRECTORY,
     )
 
-llm = ChatOpenAI(temperature=0, model='gpt-4-turbo-preview')
+llm = ChatOpenAI(temperature=0, model='gpt-4-turbo-2024-04-09')
 qa_chain = create_qa_with_sources_chain(llm)
 doc_prompt = PromptTemplate(
     template='Content: {page_content}\nSource: {source}',
@@ -89,14 +130,15 @@ retrieval_qa = RetrievalQA(
 
 if HISTORY:
     memory = ConversationBufferMemory(memory_key='chat_history', return_messages=True)
-    _template = """Given the following conversation and a follow up question, rephrase the follow up question to be a standalone question, in its original language.\
+    TEMPLATE = """Given the following conversation and a follow up question, rephrase the \
+    follow up question to be a standalone question, in its original language.\
     Make sure to avoid using any unclear pronouns.
 
     Chat History:
     {chat_history}
     Follow Up Input: {question}
     Standalone question:"""
-    CONDENSE_QUESTION_PROMPT = PromptTemplate.from_template(_template)
+    CONDENSE_QUESTION_PROMPT = PromptTemplate.from_template(TEMPLATE)
     condense_question_chain = LLMChain(
         llm=llm,
         prompt=CONDENSE_QUESTION_PROMPT,
@@ -127,4 +169,7 @@ while True:
             print(f'Answer: {response}\n')
     except KeyboardInterrupt:
         print('\n\nNice chatting to you.\n')
+        break
+    except openai.BadRequestError:
+        print('\n\nSorry, something went wrong with the OpenAI request.\n')
         break

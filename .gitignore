@@ -2,6 +2,7 @@
 .envrc
 data.json
 works_db
+*.zip
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
