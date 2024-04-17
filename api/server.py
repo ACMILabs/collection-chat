@@ -138,6 +138,22 @@ app.add_middleware(
 # /stream
 add_routes(app, chain, enable_feedback_endpoint=False)
 
+@app.get('/')
+async def root():
+    """Returns the home view."""
+    return {
+        'message': 'Welcome to the ACMI Collection Chat API.',
+        'api': sorted(list(set([route.path for route in app.routes]))),
+        'acknowledgement':
+            'ACMI acknowledges the Traditional Owners, the Wurundjeri and Boon Wurrung '
+            'people of the Kulin Nation, on whose land we meet, share and work. We pay our '
+            'respects to Elders past and present and extend our respect to Aboriginal and '
+            'Torres Strait Islander people from all nations of this land. Aboriginal and '
+            'Torres Strait Islander people should be aware that this website may contain '
+            'images, voices or names of deceased persons in photographs, film, audio '
+            'recordings or text.',
+    }
+
 if __name__ == '__main__':
     import uvicorn
 
