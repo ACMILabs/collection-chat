@@ -99,7 +99,7 @@ _context = {
 
 
 # User input
-class ChatHistory(BaseModel):
+class ChatHistory(BaseModel):  # pylint: disable=too-few-public-methods
     """Chat history with the bot."""
 
     chat_history: List[Tuple[str, str]] = Field(
