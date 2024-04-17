@@ -56,7 +56,7 @@ jobs:
       uses: andymckay/cancel-action@0.2
 
   build-chat-latest:
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/add/3-api-server'
     needs: [build-and-test-python]
     runs-on: ubuntu-latest
 
