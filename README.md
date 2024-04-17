@@ -8,14 +8,16 @@ Uses LangChain and GPT-4 to chat with the ACMI Public API collection.
 * Setup your OpenAI API Key: `cp template.envrc .envrc`
 * Install direnv if you'd like to load API Keys from the `.envrc` file: `brew install direnv`
 * Load the environment `direnv allow`
-* Start chatting: `make up`
+* Start chatting on the command line: `make up`
+* Start chatting in a web browser: `make server` and visit: http://localhost:8000/playground
 
 Or if you have your own Python environment setup:
 
 * Install the dependencies: `pip install -r requirements.txt`
-* Start chatting: `python chat.py`
+* Start chatting on the command line: `python chat.py`
+* Start chatting in a web browser: `python api/server.py` and visit: http://localhost:8000/playground
 
-### Build all
+### Re-build all collection items
 
 By default we only build the first ten pages of the Public API into the vector database, but if you'd like the build the entire collection:
 
