@@ -1,13 +1,14 @@
 #!/usr/bin/env python
-"""Example LangChain server exposes a conversational retrieval chain.
+"""ACMI Public API LangChain server exposes a conversational retrieval chain.
 
-Follow the reference here:
+References:
+* https://python.langchain.com/docs/expression_language/cookbook/retrieval#conversational-retrieval-chain
+* https://github.com/langchain-ai/langserve/blob/main/examples/chat_playground/server.py
 
-https://python.langchain.com/docs/expression_language/cookbook/retrieval#conversational-retrieval-chain
-
-To run this example, you will need to install the following packages:
-pip install langchain openai faiss-cpu tiktoken
-"""  # noqa: F401
+To run this example:
+make build
+make server
+"""
 
 import os
 from operator import itemgetter
