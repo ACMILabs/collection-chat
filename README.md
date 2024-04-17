@@ -10,12 +10,14 @@ Uses LangChain and GPT-4 to chat with the ACMI Public API collection.
 * Load the environment `direnv allow`
 * Start chatting on the command line: `make up`
 * Start chatting in a web browser: `make server` and visit: http://localhost:8000/playground
+* See the API server documentation: http://localhost:8000/docs
 
 Or if you have your own Python environment setup:
 
 * Install the dependencies: `pip install -r requirements.txt`
 * Start chatting on the command line: `python chat.py`
 * Start chatting in a web browser: `python api/server.py` and visit: http://localhost:8000/playground
+* See the API server documentation: http://localhost:8000/docs
 
 ### Re-build all collection items
 
