@@ -20,9 +20,7 @@ jobs:
           access_token: ${{ github.token }}
 
       - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-          ref: main
+
       - name: Build standard image (cached)
         if: success()
         uses: whoan/docker-build-with-cache-action@v4
@@ -44,9 +42,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
-        ref: main
+
     - name: Build Python lint and test
       run: |
         cp config.tmpl.env config.env

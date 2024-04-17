@@ -7,7 +7,7 @@ Uses LangChain, LangServe, and GPT-4 to chat with the ACMI Public API collection
 ## Run it on your computer
 
 * Build the virtual environment: `make build-local`
-* Setup your OpenAI API Key: `cp config.template.env config.env`
+* Setup your OpenAI API Key: `cp config.tmpl.env config.env`
 * Install direnv if you'd like to load API Keys from the `config.env` file: `brew install direnv`
 * Load the environment `direnv allow`
 * Start chatting on the command line: `make up-local`
