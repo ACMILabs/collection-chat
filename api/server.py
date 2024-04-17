@@ -2,7 +2,7 @@
 """ACMI Public API LangChain server exposes a conversational retrieval chain.
 
 References:
-* https://python.langchain.com/docs/expression_language/cookbook/retrieval#conversational-retrieval-chain
+* https://python.langchain.com/docs/expression_language/cookbook/retrieval
 * https://github.com/langchain-ai/langserve/blob/main/examples/chat_playground/server.py
 
 To run this example:
@@ -21,20 +21,18 @@ from langchain.prompts.prompt import PromptTemplate
 from langchain.schema import format_document
 from langchain.schema.output_parser import StrOutputParser
 from langchain.schema.runnable import RunnableMap, RunnablePassthrough
-from langchain_openai import ChatOpenAI
-from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores import Chroma
-
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langserve import add_routes
 from langserve.pydantic_v1 import BaseModel, Field
-
 
 DATABASE_PATH = os.getenv('DATABASE_PATH', '')
 COLLECTION_NAME = os.getenv('COLLECTION_NAME', 'works')
 PERSIST_DIRECTORY = os.getenv('PERSIST_DIRECTORY', 'works_db')
 MODEL = os.getenv('MODEL', 'gpt-4-turbo-2024-04-09')
+LANGCHAIN_TRACING_V2 = os.getenv('LANGCHAIN_TRACING_V2', 'false').lower() == 'true'
 
-_TEMPLATE = """Given the following conversation and a follow up question, rephrase the 
+_TEMPLATE = """Given the following conversation and a follow up question, rephrase the
 follow up question to be a standalone question, in its original language.
 
 Chat History:
@@ -138,12 +136,13 @@ app.add_middleware(
 # /stream
 add_routes(app, chain, enable_feedback_endpoint=False)
 
+
 @app.get('/')
 async def root():
     """Returns the home view."""
     return {
         'message': 'Welcome to the ACMI Collection Chat API.',
-        'api': sorted(list(set([route.path for route in app.routes]))),
+        'api': sorted({route.path for route in app.routes}),
         'acknowledgement':
             'ACMI acknowledges the Traditional Owners, the Wurundjeri and Boon Wurrung '
             'people of the Kulin Nation, on whose land we meet, share and work. We pay our '

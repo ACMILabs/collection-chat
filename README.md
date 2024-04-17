@@ -1,15 +1,17 @@
 # ACMI collection chat
 
-Uses LangChain and GPT-4 to chat with the ACMI Public API collection.
+![ACMI Collection Chat CI](https://github.com/ACMILabs/collection-chat/workflows/ACMI%20Collection%20Chat%20CI/badge.svg)
+
+Uses LangChain, LangServe, and GPT-4 to chat with the ACMI Public API collection.
 
 ## Run it on your computer
 
-* Build the virtual environment: `make build`
-* Setup your OpenAI API Key: `cp template.envrc .envrc`
-* Install direnv if you'd like to load API Keys from the `.envrc` file: `brew install direnv`
+* Build the virtual environment: `make build-local`
+* Setup your OpenAI API Key: `cp config.template.env config.env`
+* Install direnv if you'd like to load API Keys from the `config.env` file: `brew install direnv`
 * Load the environment `direnv allow`
-* Start chatting on the command line: `make up`
-* Start chatting in a web browser: `make server` and visit: http://localhost:8000/playground
+* Start chatting on the command line: `make up-local`
+* Start chatting in a web browser: `make server-local` and visit: http://localhost:8000/playground
 * See the API server documentation: http://localhost:8000/docs
 
 Or if you have your own Python environment setup:
@@ -18,6 +20,13 @@ Or if you have your own Python environment setup:
 * Start chatting on the command line: `python chat.py`
 * Start chatting in a web browser: `python api/server.py` and visit: http://localhost:8000/playground
 * See the API server documentation: http://localhost:8000/docs
+
+Or to run the API server using Docker:
+
+* Build: `make build`
+* Run: `make up`
+* Visit: http://localhost:8000
+* Clean-up: `make down`
 
 ### Environment variables
 
@@ -34,9 +43,9 @@ Optional environment variables you can set:
 
 By default we only build the first ten pages of the Public API into the vector database, but if you'd like the build the entire collection:
 
-* Add `ALL=true` to your `.envrc`
-* Then either delete your persistant directory or also add `REBUILD=true` to your `.envrc`
-* Rebuild the app: `make build`
+* Add `ALL=true` to your `config.env`
+* Then either delete your persistant directory or also add `REBUILD=true` to your `config.env`
+* Rebuild the app: `make build-local`
 
 ## Run it on Google Colab
 

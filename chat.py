@@ -9,21 +9,18 @@ Colab prototype: https://colab.research.google.com/drive/1RLe2LliEE63KaQgxXDv3xc
 
 import json
 import os
+
 import openai
 import requests
-
 from furl import furl
+from langchain.chains import (ConversationalRetrievalChain, LLMChain,
+                              RetrievalQA, create_qa_with_sources_chain)
+from langchain.chains.combine_documents.stuff import StuffDocumentsChain
+from langchain.memory import ConversationBufferMemory
+from langchain.prompts import PromptTemplate
 from langchain_community.document_loaders import JSONLoader
 from langchain_community.vectorstores import Chroma
-from langchain_openai import OpenAIEmbeddings
-from langchain.chains import RetrievalQA
-from langchain.chains import create_qa_with_sources_chain
-from langchain.chains.combine_documents.stuff import StuffDocumentsChain
-from langchain.prompts import PromptTemplate
-from langchain_openai import ChatOpenAI
-from langchain.chains import ConversationalRetrievalChain, LLMChain
-from langchain.memory import ConversationBufferMemory
-
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 
 DATABASE_PATH = os.getenv('DATABASE_PATH', '')
 COLLECTION_NAME = os.getenv('COLLECTION_NAME', 'works')
