@@ -32,6 +32,7 @@ from langserve.pydantic_v1 import BaseModel, Field
 DATABASE_PATH = os.getenv('DATABASE_PATH', '')
 COLLECTION_NAME = os.getenv('COLLECTION_NAME', 'works')
 PERSIST_DIRECTORY = os.getenv('PERSIST_DIRECTORY', 'works_db')
+MODEL = os.getenv('MODEL', 'gpt-4-turbo-2024-04-09')
 
 _TEMPLATE = """Given the following conversation and a follow up question, rephrase the 
 follow up question to be a standalone question, in its original language.
@@ -77,7 +78,7 @@ def _format_chat_history(chat_history: List[Tuple]) -> str:
 
 
 embeddings = OpenAIEmbeddings()
-llm = ChatOpenAI(temperature=0, model='gpt-4-turbo-2024-04-09')
+llm = ChatOpenAI(temperature=0, model=MODEL)
 docsearch = Chroma(
     collection_name=COLLECTION_NAME,
     embedding_function=embeddings,

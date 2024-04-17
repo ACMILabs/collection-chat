@@ -28,6 +28,7 @@ from langchain.memory import ConversationBufferMemory
 DATABASE_PATH = os.getenv('DATABASE_PATH', '')
 COLLECTION_NAME = os.getenv('COLLECTION_NAME', 'works')
 PERSIST_DIRECTORY = os.getenv('PERSIST_DIRECTORY', 'works_db')
+MODEL = os.getenv('MODEL', 'gpt-4-turbo-2024-04-09')
 REBUILD = os.getenv('REBUILD', 'false').lower() == 'true'
 HISTORY = os.getenv('HISTORY', 'true').lower() == 'true'
 ALL = os.getenv('ALL', 'false').lower() == 'true'
@@ -112,7 +113,7 @@ if len(docsearch) < 1 or REBUILD:
         persist_directory=PERSIST_DIRECTORY,
     )
 
-llm = ChatOpenAI(temperature=0, model='gpt-4-turbo-2024-04-09')
+llm = ChatOpenAI(temperature=0, model=MODEL)
 qa_chain = create_qa_with_sources_chain(llm)
 doc_prompt = PromptTemplate(
     template='Content: {page_content}\nSource: {source}',

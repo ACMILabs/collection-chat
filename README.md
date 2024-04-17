@@ -19,6 +19,17 @@ Or if you have your own Python environment setup:
 * Start chatting in a web browser: `python api/server.py` and visit: http://localhost:8000/playground
 * See the API server documentation: http://localhost:8000/docs
 
+### Environment variables
+
+Optional environment variables you can set:
+
+* `DATABASE_PATH` - set where your Chromadb vector database is located
+* `COLLECTION_NAME` - the name of the Chromadb collection to save your data to
+* `PERSIST_DIRECTORY` - the name of the directory to save your persistant Chromadb data
+* `MODEL` - the OpenAI chat model to use
+* `REBUILD` - set to `true` to rebuild your Chromadb vector database
+* `ALL` - set to `true` to rebuild with the entire ACMI Public API collection
+
 ### Re-build all collection items
 
 By default we only build the first ten pages of the Public API into the vector database, but if you'd like the build the entire collection:

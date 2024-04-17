@@ -5,3 +5,6 @@ requests
 jq
 chromadb
 furl
+
+# Pin pydantic to see /docs
+pydantic==1.10.13
