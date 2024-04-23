@@ -1,8 +1,9 @@
 # ACMI
-.envrc
+config.env
 data.json
 works_db
 *.zip
+*.tar.gz
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

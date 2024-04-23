@@ -9,25 +9,23 @@ Colab prototype: https://colab.research.google.com/drive/1RLe2LliEE63KaQgxXDv3xc
 
 import json
 import os
+
 import openai
 import requests
-
 from furl import furl
+from langchain.chains import (ConversationalRetrievalChain, LLMChain,
+                              RetrievalQA, create_qa_with_sources_chain)
+from langchain.chains.combine_documents.stuff import StuffDocumentsChain
+from langchain.memory import ConversationBufferMemory
+from langchain.prompts import PromptTemplate
 from langchain_community.document_loaders import JSONLoader
 from langchain_community.vectorstores import Chroma
-from langchain_openai import OpenAIEmbeddings
-from langchain.chains import RetrievalQA
-from langchain.chains import create_qa_with_sources_chain
-from langchain.chains.combine_documents.stuff import StuffDocumentsChain
-from langchain.prompts import PromptTemplate
-from langchain_openai import ChatOpenAI
-from langchain.chains import ConversationalRetrievalChain, LLMChain
-from langchain.memory import ConversationBufferMemory
-
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 
 DATABASE_PATH = os.getenv('DATABASE_PATH', '')
 COLLECTION_NAME = os.getenv('COLLECTION_NAME', 'works')
 PERSIST_DIRECTORY = os.getenv('PERSIST_DIRECTORY', 'works_db')
+MODEL = os.getenv('MODEL', 'gpt-4-turbo-2024-04-09')
 REBUILD = os.getenv('REBUILD', 'false').lower() == 'true'
 HISTORY = os.getenv('HISTORY', 'true').lower() == 'true'
 ALL = os.getenv('ALL', 'false').lower() == 'true'
@@ -112,7 +110,7 @@ if len(docsearch) < 1 or REBUILD:
         persist_directory=PERSIST_DIRECTORY,
     )
 
-llm = ChatOpenAI(temperature=0, model='gpt-4-turbo-2024-04-09')
+llm = ChatOpenAI(temperature=0, model=MODEL)
 qa_chain = create_qa_with_sources_chain(llm)
 doc_prompt = PromptTemplate(
     template='Content: {page_content}\nSource: {source}',

@@ -1,0 +1,14 @@
+version: "3"
+
+services:
+  chat:
+    build:
+      context: "../"
+      dockerfile: development/Dockerfile
+    hostname: chat
+    container_name: chat
+    env_file: ../config.env
+    volumes:
+      - ../:/code
+    ports:
+     - 8000:8000

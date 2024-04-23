@@ -1,6 +1,0 @@
-langchain
-langchain-openai
-requests
-jq
-chromadb
-furl
