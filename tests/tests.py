@@ -11,6 +11,8 @@ def test_root():
     response = client.get('/')
     assert response.status_code == 200
     assert response.json()['message'] == 'Welcome to the ACMI Collection Chat API.'
+    assert 'ACMI would like to acknowledge the Traditional Custodians'\
+        in response.json()['acknowledgement']
     assert '/' in response.json()['api']
     assert '/docs' in response.json()['api']
     assert '/invoke' in response.json()['api']
