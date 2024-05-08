@@ -21,6 +21,7 @@ from langchain.prompts.prompt import PromptTemplate
 from langchain.schema import format_document
 from langchain.schema.output_parser import StrOutputParser
 from langchain.schema.runnable import RunnableMap, RunnablePassthrough
+from langchain_community.llms import Ollama
 from langchain_community.vectorstores import Chroma
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langserve import add_routes
@@ -30,6 +31,7 @@ DATABASE_PATH = os.getenv('DATABASE_PATH', '')
 COLLECTION_NAME = os.getenv('COLLECTION_NAME', 'works')
 PERSIST_DIRECTORY = os.getenv('PERSIST_DIRECTORY', 'works_db')
 MODEL = os.getenv('MODEL', 'gpt-4-turbo-2024-04-09')
+LLM_BASE_URL = os.getenv('LLM_BASE_URL', None)
 LANGCHAIN_TRACING_V2 = os.getenv('LANGCHAIN_TRACING_V2', 'false').lower() == 'true'
 
 _TEMPLATE = """Given the following conversation and a follow up question, rephrase the
@@ -48,7 +50,7 @@ Please use your general knowledge if the question includes the title of a film,
 tv show, videogame, artwork, or object.
 
 Please include the ID of the collection item in response if you find relevant information.
-Also include a link at the bottom with this format: 'https://url.acmi.net.au/w/<ID>'
+Also include a link at the bottom with this format if you find relevant information: 'https://url.acmi.net.au/w/<ID>'
 
 Question: {question}
 """
@@ -76,7 +78,12 @@ def _format_chat_history(chat_history: List[Tuple]) -> str:
 
 
 embeddings = OpenAIEmbeddings()
-llm = ChatOpenAI(temperature=0, model=MODEL)
+if MODEL.startswith('gpt'):
+    llm = ChatOpenAI(temperature=0, model=MODEL)
+else:
+    llm = Ollama(model=MODEL)
+    if LLM_BASE_URL:
+        llm.base_url = LLM_BASE_URL
 docsearch = Chroma(
     collection_name=COLLECTION_NAME,
     embedding_function=embeddings,
