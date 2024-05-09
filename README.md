@@ -39,6 +39,25 @@ Optional environment variables you can set:
 * `REBUILD` - set to `true` to rebuild your Chromadb vector database
 * `ALL` - set to `true` to rebuild with the entire ACMI Public API collection
 
+When using Docker:
+
+* `CACHE_URL` - the URL to your pre-generated embeddings database e.g. https://example.com/path/
+
+The `scripts/entrypoint.sh` script will look for a file named `works_db_chat.tar.gz` at the `CACHE_URL` to process.
+
+To create that file, generate your embeddings database locally and then run: `tar -cvzf works_db_chat.tar.gz works_db`
+
+### Open source LLM using Ollama
+
+To use an open source model on your computer with [Ollama](https://ollama.com):
+
+* Install `ollama` with: `brew install ollama`
+* Start the `ollama` server with: `OLLAMA_HOST=0.0.0.0:11434 ollama serve`
+* Pull an open source model: `ollama pull llama3`
+* Set `MODEL=llama3`
+* Set `LLM_BASE_URL=http://<YOUR_IP_ADDRESS>:11434`
+* Start the chat: `make up`
+
 ### Re-build all collection items
 
 By default we only build the first ten pages of the Public API into the vector database, but if you'd like the build the entire collection:
