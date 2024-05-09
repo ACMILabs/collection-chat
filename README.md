@@ -52,8 +52,8 @@ To create that file, generate your embeddings database locally and then run: `ta
 To use an open source model on your computer with [Ollama](https://ollama.com):
 
 * Install `ollama` with: `brew install ollama`
-* Pull an open source model: `ollama pull llama3`
 * Start the `ollama` server with: `OLLAMA_HOST=0.0.0.0:11434 ollama serve`
+* Pull an open source model: `ollama pull llama3`
 * Set `MODEL=llama3`
 * Set `LLM_BASE_URL=http://<YOUR_IP_ADDRESS>:11434`
 * Start the chat: `make up`
