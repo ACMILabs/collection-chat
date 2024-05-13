@@ -73,8 +73,8 @@ def _format_chat_history(chat_history: List[Tuple]) -> str:
     buffer = ""
     for dialogue_turn in chat_history:
         human = 'Human: ' + dialogue_turn[0]
-        ai = 'Assistant: ' + dialogue_turn[1]
-        buffer += '\n' + '\n'.join([human, ai])
+        assistant = 'Assistant: ' + dialogue_turn[1]
+        buffer += '\n' + '\n'.join([human, assistant])
     return buffer
 
 
