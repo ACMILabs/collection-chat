@@ -19,6 +19,8 @@ from langchain.chains.combine_documents.stuff import StuffDocumentsChain
 from langchain.memory import ConversationBufferMemory
 from langchain.prompts import PromptTemplate
 from langchain_community.document_loaders import JSONLoader
+from langchain_community.embeddings import OllamaEmbeddings
+from langchain_community.llms import Ollama
 from langchain_community.vectorstores import Chroma
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 
@@ -26,6 +28,7 @@ DATABASE_PATH = os.getenv('DATABASE_PATH', '')
 COLLECTION_NAME = os.getenv('COLLECTION_NAME', 'works')
 PERSIST_DIRECTORY = os.getenv('PERSIST_DIRECTORY', 'works_db')
 MODEL = os.getenv('MODEL', 'gpt-4-turbo-2024-04-09')
+LLM_BASE_URL = os.getenv('LLM_BASE_URL', None)
 REBUILD = os.getenv('REBUILD', 'false').lower() == 'true'
 HISTORY = os.getenv('HISTORY', 'true').lower() == 'true'
 ALL = os.getenv('ALL', 'false').lower() == 'true'
@@ -33,7 +36,16 @@ ALL = os.getenv('ALL', 'false').lower() == 'true'
 # Set true if you'd like langchain tracing via LangSmith https://smith.langchain.com
 os.environ['LANGCHAIN_TRACING_V2'] = 'false'
 
-embeddings = OpenAIEmbeddings()
+if MODEL.startswith('gpt'):
+    llm = ChatOpenAI(temperature=0, model=MODEL)
+    embeddings = OpenAIEmbeddings()
+else:
+    llm = Ollama(model=MODEL)
+    embeddings = OllamaEmbeddings(model=MODEL)
+    if LLM_BASE_URL:
+        llm.base_url = LLM_BASE_URL
+        embeddings.base_url = LLM_BASE_URL
+
 docsearch = Chroma(
     collection_name=COLLECTION_NAME,
     embedding_function=embeddings,
@@ -103,14 +115,6 @@ if len(docsearch) < 1 or REBUILD:
         print(f'Added {len(sublist)} items to the database... total {(i + 1) * len(sublist)}')
     print(f'Finished adding {len(data)} items to the database')
 
-    docsearch = Chroma.from_documents(
-        data,
-        embeddings,
-        collection_name=COLLECTION_NAME,
-        persist_directory=PERSIST_DIRECTORY,
-    )
-
-llm = ChatOpenAI(temperature=0, model=MODEL)
 qa_chain = create_qa_with_sources_chain(llm)
 doc_prompt = PromptTemplate(
     template='Content: {page_content}\nSource: {source}',

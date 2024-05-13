@@ -21,6 +21,7 @@ from langchain.prompts.prompt import PromptTemplate
 from langchain.schema import format_document
 from langchain.schema.output_parser import StrOutputParser
 from langchain.schema.runnable import RunnableMap, RunnablePassthrough
+from langchain_community.embeddings import OllamaEmbeddings
 from langchain_community.llms import Ollama
 from langchain_community.vectorstores import Chroma
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
@@ -77,13 +78,16 @@ def _format_chat_history(chat_history: List[Tuple]) -> str:
     return buffer
 
 
-embeddings = OpenAIEmbeddings()
 if MODEL.startswith('gpt'):
     llm = ChatOpenAI(temperature=0, model=MODEL)
+    embeddings = OpenAIEmbeddings()
 else:
     llm = Ollama(model=MODEL)
+    embeddings = OllamaEmbeddings(model=MODEL)
     if LLM_BASE_URL:
         llm.base_url = LLM_BASE_URL
+        embeddings.base_url = LLM_BASE_URL
+
 docsearch = Chroma(
     collection_name=COLLECTION_NAME,
     embedding_function=embeddings,
