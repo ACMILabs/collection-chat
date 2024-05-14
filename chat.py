@@ -27,7 +27,7 @@ from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 DATABASE_PATH = os.getenv('DATABASE_PATH', '')
 COLLECTION_NAME = os.getenv('COLLECTION_NAME', 'works')
 PERSIST_DIRECTORY = os.getenv('PERSIST_DIRECTORY', 'works_db')
-MODEL = os.getenv('MODEL', 'gpt-4-turbo-2024-04-09')
+MODEL = os.getenv('MODEL', 'gpt-4o')
 LLM_BASE_URL = os.getenv('LLM_BASE_URL', None)
 REBUILD = os.getenv('REBUILD', 'false').lower() == 'true'
 HISTORY = os.getenv('HISTORY', 'true').lower() == 'true'

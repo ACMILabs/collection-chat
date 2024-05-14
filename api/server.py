@@ -31,7 +31,7 @@ from langserve.pydantic_v1 import BaseModel, Field
 DATABASE_PATH = os.getenv('DATABASE_PATH', '')
 COLLECTION_NAME = os.getenv('COLLECTION_NAME', 'works')
 PERSIST_DIRECTORY = os.getenv('PERSIST_DIRECTORY', 'works_db')
-MODEL = os.getenv('MODEL', 'gpt-4-turbo-2024-04-09')
+MODEL = os.getenv('MODEL', 'gpt-4o')
 LLM_BASE_URL = os.getenv('LLM_BASE_URL', None)
 LANGCHAIN_TRACING_V2 = os.getenv('LANGCHAIN_TRACING_V2', 'false').lower() == 'true'
 
