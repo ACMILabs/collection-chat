@@ -62,7 +62,7 @@ if len(docsearch) < 1 or REBUILD:
 
     if os.path.isfile(TMP_FILE_PATH):
         print('Loading works from the ACMI Public API data.json file you have already created...')
-        with open(TMP_FILE_PATH, 'r') as tmp_file:
+        with open(TMP_FILE_PATH, 'r', encoding='utf-8') as tmp_file:
             json_data = json.load(tmp_file)
     else:
         if ALL:
