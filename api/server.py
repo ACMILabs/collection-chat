@@ -32,6 +32,7 @@ DATABASE_PATH = os.getenv('DATABASE_PATH', '')
 COLLECTION_NAME = os.getenv('COLLECTION_NAME', 'works')
 PERSIST_DIRECTORY = os.getenv('PERSIST_DIRECTORY', 'works_db')
 MODEL = os.getenv('MODEL', 'gpt-4o')
+EMBEDDINGS_MODEL = os.getenv('EMBEDDINGS_MODEL', 'nomic-embed-text')
 LLM_BASE_URL = os.getenv('LLM_BASE_URL', None)
 LANGCHAIN_TRACING_V2 = os.getenv('LANGCHAIN_TRACING_V2', 'false').lower() == 'true'
 
@@ -83,7 +84,7 @@ if MODEL.startswith('gpt'):
     embeddings = OpenAIEmbeddings()
 else:
     llm = Ollama(model=MODEL)
-    embeddings = OllamaEmbeddings(model=MODEL)
+    embeddings = OllamaEmbeddings(model=EMBEDDINGS_MODEL)
     if LLM_BASE_URL:
         llm.base_url = LLM_BASE_URL
         embeddings.base_url = LLM_BASE_URL
