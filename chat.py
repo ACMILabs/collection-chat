@@ -28,7 +28,7 @@ DATABASE_PATH = os.getenv('DATABASE_PATH', '')
 COLLECTION_NAME = os.getenv('COLLECTION_NAME', 'works')
 PERSIST_DIRECTORY = os.getenv('PERSIST_DIRECTORY', 'works_db')
 MODEL = os.getenv('MODEL', 'gpt-4o')
-EMBEDDINGS_MODEL = os.getenv('EMBEDDINGS_MODEL', 'nomic-embed-text')
+EMBEDDINGS_MODEL = os.getenv('EMBEDDINGS_MODEL', None)
 LLM_BASE_URL = os.getenv('LLM_BASE_URL', None)
 REBUILD = os.getenv('REBUILD', 'false').lower() == 'true'
 HISTORY = os.getenv('HISTORY', 'true').lower() == 'true'
@@ -39,10 +39,10 @@ os.environ['LANGCHAIN_TRACING_V2'] = 'false'
 
 if MODEL.startswith('gpt'):
     llm = ChatOpenAI(temperature=0, model=MODEL)
-    embeddings = OpenAIEmbeddings()
+    embeddings = OpenAIEmbeddings(model=EMBEDDINGS_MODEL or 'text-embedding-ada-002')
 else:
     llm = Ollama(model=MODEL)
-    embeddings = OllamaEmbeddings(model=EMBEDDINGS_MODEL)
+    embeddings = OllamaEmbeddings(model=EMBEDDINGS_MODEL or MODEL)
     if LLM_BASE_URL:
         llm.base_url = LLM_BASE_URL
         embeddings.base_url = LLM_BASE_URL
