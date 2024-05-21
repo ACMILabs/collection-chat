@@ -19,13 +19,17 @@ from langchain.chains.combine_documents.stuff import StuffDocumentsChain
 from langchain.memory import ConversationBufferMemory
 from langchain.prompts import PromptTemplate
 from langchain_community.document_loaders import JSONLoader
+from langchain_community.embeddings import OllamaEmbeddings
+from langchain_community.llms import Ollama
 from langchain_community.vectorstores import Chroma
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 
 DATABASE_PATH = os.getenv('DATABASE_PATH', '')
 COLLECTION_NAME = os.getenv('COLLECTION_NAME', 'works')
 PERSIST_DIRECTORY = os.getenv('PERSIST_DIRECTORY', 'works_db')
-MODEL = os.getenv('MODEL', 'gpt-4-turbo-2024-04-09')
+MODEL = os.getenv('MODEL', 'gpt-4o')
+EMBEDDINGS_MODEL = os.getenv('EMBEDDINGS_MODEL', None)
+LLM_BASE_URL = os.getenv('LLM_BASE_URL', None)
 REBUILD = os.getenv('REBUILD', 'false').lower() == 'true'
 HISTORY = os.getenv('HISTORY', 'true').lower() == 'true'
 ALL = os.getenv('ALL', 'false').lower() == 'true'
@@ -33,7 +37,16 @@ ALL = os.getenv('ALL', 'false').lower() == 'true'
 # Set true if you'd like langchain tracing via LangSmith https://smith.langchain.com
 os.environ['LANGCHAIN_TRACING_V2'] = 'false'
 
-embeddings = OpenAIEmbeddings()
+if MODEL.startswith('gpt'):
+    llm = ChatOpenAI(temperature=0, model=MODEL)
+    embeddings = OpenAIEmbeddings(model=EMBEDDINGS_MODEL or 'text-embedding-ada-002')
+else:
+    llm = Ollama(model=MODEL)
+    embeddings = OllamaEmbeddings(model=EMBEDDINGS_MODEL or MODEL)
+    if LLM_BASE_URL:
+        llm.base_url = LLM_BASE_URL
+        embeddings.base_url = LLM_BASE_URL
+
 docsearch = Chroma(
     collection_name=COLLECTION_NAME,
     embedding_function=embeddings,
@@ -45,40 +58,47 @@ if len(docsearch) < 1 or REBUILD:
         'results': [],
     }
     params = {'page': ''}
-    if ALL:
-        print('Loading all of the works from the ACMI Public API')
-        while True:
-            page_data = requests.get(
-                'https://api.acmi.net.au/works/',
-                params=params,
-                timeout=10,
-            ).json()
-            json_data['results'].extend(page_data['results'])
-            if not page_data.get('next'):
-                break
-            params['page'] = furl(page_data.get('next')).args.get('page')
-            if len(json_data['results']) % 1000 == 0:
-                print(f'Downloaded {len(json_data["results"])}...')
-    else:
-        print('Loading the first ten pages of works from the ACMI Public API')
-        PAGES = 10
-        json_data = {
-            'results': [],
-        }
-        for index in range(1, (PAGES + 1)):
-            page_data = requests.get(
-                'https://api.acmi.net.au/works/',
-                params=params,
-                timeout=10,
-            )
-            json_data['results'].extend(page_data.json()['results'])
-            print(f'Downloaded {page_data.request.url}')
-            params['page'] = furl(page_data.json().get('next')).args.get('page')
-    print(f'Finished downloading {len(json_data["results"])} works.')
-
     TMP_FILE_PATH = 'data.json'
-    with open(TMP_FILE_PATH, 'w', encoding='utf-8') as json_file:
-        json.dump(json_data, json_file)
+
+    if os.path.isfile(TMP_FILE_PATH):
+        print('Loading works from the ACMI Public API data.json file you have already created...')
+        with open(TMP_FILE_PATH, 'r', encoding='utf-8') as tmp_file:
+            json_data = json.load(tmp_file)
+    else:
+        if ALL:
+            print('Loading all of the works from the ACMI Public API')
+            while True:
+                page_data = requests.get(
+                    'https://api.acmi.net.au/works/',
+                    params=params,
+                    timeout=10,
+                ).json()
+                json_data['results'].extend(page_data['results'])
+                if not page_data.get('next'):
+                    break
+                params['page'] = furl(page_data.get('next')).args.get('page')
+                if len(json_data['results']) % 1000 == 0:
+                    print(f'Downloaded {len(json_data["results"])}...')
+        else:
+            print('Loading the first ten pages of works from the ACMI Public API')
+            PAGES = 10
+            json_data = {
+                'results': [],
+            }
+            for index in range(1, (PAGES + 1)):
+                page_data = requests.get(
+                    'https://api.acmi.net.au/works/',
+                    params=params,
+                    timeout=10,
+                )
+                json_data['results'].extend(page_data.json()['results'])
+                print(f'Downloaded {page_data.request.url}')
+                params['page'] = furl(page_data.json().get('next')).args.get('page')
+        print(f'Finished downloading {len(json_data["results"])} works.')
+
+        with open(TMP_FILE_PATH, 'w', encoding='utf-8') as json_file:
+            json.dump(json_data, json_file)
+
     json_loader = JSONLoader(
         file_path=TMP_FILE_PATH,
         jq_schema='.results[]',
@@ -103,14 +123,6 @@ if len(docsearch) < 1 or REBUILD:
         print(f'Added {len(sublist)} items to the database... total {(i + 1) * len(sublist)}')
     print(f'Finished adding {len(data)} items to the database')
 
-    docsearch = Chroma.from_documents(
-        data,
-        embeddings,
-        collection_name=COLLECTION_NAME,
-        persist_directory=PERSIST_DIRECTORY,
-    )
-
-llm = ChatOpenAI(temperature=0, model=MODEL)
 qa_chain = create_qa_with_sources_chain(llm)
 doc_prompt = PromptTemplate(
     template='Content: {page_content}\nSource: {source}',

@@ -21,6 +21,7 @@ from langchain.prompts.prompt import PromptTemplate
 from langchain.schema import format_document
 from langchain.schema.output_parser import StrOutputParser
 from langchain.schema.runnable import RunnableMap, RunnablePassthrough
+from langchain_community.embeddings import OllamaEmbeddings
 from langchain_community.llms import Ollama
 from langchain_community.vectorstores import Chroma
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
@@ -30,7 +31,8 @@ from langserve.pydantic_v1 import BaseModel, Field
 DATABASE_PATH = os.getenv('DATABASE_PATH', '')
 COLLECTION_NAME = os.getenv('COLLECTION_NAME', 'works')
 PERSIST_DIRECTORY = os.getenv('PERSIST_DIRECTORY', 'works_db')
-MODEL = os.getenv('MODEL', 'gpt-4-turbo-2024-04-09')
+MODEL = os.getenv('MODEL', 'gpt-4o')
+EMBEDDINGS_MODEL = os.getenv('EMBEDDINGS_MODEL', None)
 LLM_BASE_URL = os.getenv('LLM_BASE_URL', None)
 LANGCHAIN_TRACING_V2 = os.getenv('LANGCHAIN_TRACING_V2', 'false').lower() == 'true'
 
@@ -72,18 +74,21 @@ def _format_chat_history(chat_history: List[Tuple]) -> str:
     buffer = ""
     for dialogue_turn in chat_history:
         human = 'Human: ' + dialogue_turn[0]
-        ai = 'Assistant: ' + dialogue_turn[1]
-        buffer += '\n' + '\n'.join([human, ai])
+        assistant = 'Assistant: ' + dialogue_turn[1]
+        buffer += '\n' + '\n'.join([human, assistant])
     return buffer
 
 
-embeddings = OpenAIEmbeddings()
 if MODEL.startswith('gpt'):
     llm = ChatOpenAI(temperature=0, model=MODEL)
+    embeddings = OpenAIEmbeddings(model=EMBEDDINGS_MODEL or 'text-embedding-ada-002')
 else:
     llm = Ollama(model=MODEL)
+    embeddings = OllamaEmbeddings(model=EMBEDDINGS_MODEL or MODEL)
     if LLM_BASE_URL:
         llm.base_url = LLM_BASE_URL
+        embeddings.base_url = LLM_BASE_URL
+
 docsearch = Chroma(
     collection_name=COLLECTION_NAME,
     embedding_function=embeddings,
