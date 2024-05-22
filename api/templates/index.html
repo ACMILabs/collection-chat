@@ -55,9 +55,7 @@
 
     <script>
         var hasPlayed = false;
-        /*
-        Merges all select items into a single comma separated items URL parameter.
-        */
+        /* Merges all select items into a single comma separated items URL parameter. */
         function mergeSelectionsAndSubmit(event) {
             event.preventDefault();
             const selections = Array.from(document.querySelectorAll('select[name="items"]'))
@@ -69,9 +67,10 @@
             window.location.search = params.toString();
         }
 
+        /* Plays Seb's voice when visitors tap in the query field. */
         document.onclick = function(event) {
             var audio = document.getElementsByTagName('audio')[0];
-            if (!hasPlayed && event.target.type !== 'submit') {
+            if (!hasPlayed && event.target.type === 'text') {
                 audio.play();
             }
             hasPlayed = true;
