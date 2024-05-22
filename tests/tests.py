@@ -17,3 +17,7 @@ def test_root():
     assert '/docs' in response.json()['api']
     assert '/invoke' in response.json()['api']
     assert '/playground/{file_path:path}' in response.json()['api']
+
+    response = client.get('/?json=false')
+    assert response.status_code == 200
+    assert 'Show me something' in response.content.decode('utf-8')

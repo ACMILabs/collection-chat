@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ACMI collection chat</title>
+    <link href="{{ url_for('static', path='/styles.css') }}" rel="stylesheet">
+</head>
+<body>
+    <h1><a href="/?json=false" title="Take me home">Show me something</a></h1>
+    <audio>
+        <source src="{{ url_for('static', path='/audio/seb-are-you-looking-for-something.mp3') }}" type="audio/mp3">
+    </audio>
+
+    <form onsubmit="mergeSelectionsAndSubmit(event)">
+        {% for option in options %}
+        <label for="items">{{ option.title }}</label>
+        <select id="items" name="items" onchange="mergeSelectionsAndSubmit(event)">
+            {% for value in option.options %}
+            <option value="{{ value.0 }}" {% if value.1 %}selected{% endif %}>{{ value.0 }}</option>
+            {% endfor %}
+        </select>
+        {% endfor %}
+        <input type="submit" value="Show me">
+        <input type="hidden" name="json" id="json" value="false">
+    </form>
+
+    <h2>or</h2>
+
+    <form>
+        <input type="submit" value="Computer's choice">
+        <input type="hidden" name="json" id="json" value="false">
+        <input type="hidden" name="random" id="random" value="true">
+    </form>
+
+    <h2>or</h2>
+
+    <form>
+        <input type="text" name="query" id="query" placeholder="{% if query %}{% else %}Type your own question{% endif %}" value="{% if query %}{{ query }}{% endif %}">
+        <input type="hidden" name="json" id="json" value="false">
+    </form>
+
+    <ul>
+        {% for result in results %}
+        <li>
+            <h3><a href="https://url.acmi.net.au/w/{{ result.id }}" target="_blank">{{ result.title }}</a></h3>
+            <p>{{ result.creator_credit }}</p>
+            <p>{{ result.headline_credit }}</p>
+            {{ result.brief_description|truncate(200)|safe }}
+        </li>
+        {% endfor %}
+    </ul>
+
+    <a href="https://www.acmi.net.au"><img class="logo" src="{{ url_for('static', path='/images/acmi-logo.svg') }}" alt="An ACMI labs experiment" title="An ACMI labs experiment" /></a>
+
+    <script>
+        var hasPlayed = false;
+        /*
+        Merges all select items into a single comma separated items URL parameter.
+        */
+        function mergeSelectionsAndSubmit(event) {
+            event.preventDefault();
+            const selections = Array.from(document.querySelectorAll('select[name="items"]'))
+                                    .map(select => select.value);
+            const mergedSelections = selections.join(',');
+            const params = new URLSearchParams();
+            params.append('items', mergedSelections);
+            params.append('json', 'false');
+            window.location.search = params.toString();
+        }
+
+        document.onclick = function(event) {
+            var audio = document.getElementsByTagName('audio')[0];
+            if (!hasPlayed && event.target.type !== 'submit') {
+                audio.play();
+            }
+            hasPlayed = true;
+        }
+    </script>
+</body>
+</html>

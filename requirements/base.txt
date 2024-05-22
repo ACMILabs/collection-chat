@@ -10,3 +10,6 @@ furl
 
 # Pin pydantic to see /docs
 pydantic==1.10.13
+
+# Jinja2 for frontend templates
+jinja2
