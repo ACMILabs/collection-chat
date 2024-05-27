@@ -50,6 +50,10 @@ a:hover {
     text-decoration: underline;
 }
 
+audio {
+    padding: 1rem;
+}
+
 h1 {
     font-family: 'PxGroteskBold', sans-serif;
     font-size: 3rem;
@@ -68,7 +72,7 @@ h3 {
     line-height: 1.9rem;
 }
 
-ul {
+ol, ul {
     margin: 0;
     padding: 0;
 }
@@ -88,6 +92,13 @@ h3 + p, h3 + p + p {
     opacity: 0.6;
     margin: 0.3rem;
     text-align: center;
+}
+
+#chats li {
+    background-color: lightgray;
+    padding: 2rem 2rem;
+    border-radius: 2rem;
+    line-height: 1.5rem;
 }
 
 .logo {

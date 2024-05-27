@@ -13,3 +13,6 @@ pydantic==1.10.13
 
 # Jinja2 for frontend templates
 jinja2
+
+# ElevenLabs for text-to-speech
+elevenlabs

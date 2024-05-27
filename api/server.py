@@ -16,8 +16,10 @@ import random as random_module
 from operator import itemgetter
 from typing import List, Tuple
 
+from elevenlabs.client import ElevenLabs
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from langchain.prompts import ChatPromptTemplate
@@ -254,6 +256,30 @@ async def root(
         name='index.html',
         context={'query': query, 'results': results, 'options': options},
     )
+
+
+@app.post('/summarise')
+async def summarise(request: Request):
+    """Returns a summary of the text string."""
+
+    body = await request.body()
+    body = body.decode('utf-8')
+    return llm.invoke(body).content
+
+
+@app.post('/speak')
+async def speak(request: Request):
+    """Returns an audio stream of the text string."""
+
+    text_to_speech = ElevenLabs()
+    body = await request.body()
+    body = body.decode('utf-8')
+    return StreamingResponse(text_to_speech.generate(
+        text=body,
+        voice='Seb Chan',
+        model='eleven_multilingual_v2',
+        stream=True,
+    ))
 
 if __name__ == '__main__':
     import uvicorn

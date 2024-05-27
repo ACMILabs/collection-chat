@@ -5,12 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ACMI collection chat</title>
     <link href="{{ url_for('static', path='/styles.css') }}" rel="stylesheet">
+    <meta id="results" data-name="results" data-results="{{results}}">
+    <meta id="query" data-name="query" data-query="{{query}}">
 </head>
 <body>
     <h1><a href="/?json=false" title="Take me home">Show me something</a></h1>
-    <audio>
-        <source src="{{ url_for('static', path='/audio/seb-are-you-looking-for-something.mp3') }}" type="audio/mp3">
-    </audio>
+
+    <form>
+        <input type="submit" value="Computer's choice">
+        <input type="hidden" name="json" id="json" value="false">
+        <input type="hidden" name="random" id="random" value="true">
+    </form>
+
+    <h2>or</h2>
 
     <form onsubmit="mergeSelectionsAndSubmit(event)">
         {% for option in options %}
@@ -28,17 +35,15 @@
     <h2>or</h2>
 
     <form>
-        <input type="submit" value="Computer's choice">
-        <input type="hidden" name="json" id="json" value="false">
-        <input type="hidden" name="random" id="random" value="true">
-    </form>
-
-    <h2>or</h2>
-
-    <form>
         <input type="text" name="query" id="query" placeholder="{% if query %}{% else %}Type your own question{% endif %}" value="{% if query %}{{ query }}{% endif %}">
         <input type="hidden" name="json" id="json" value="false">
     </form>
+
+    <ol id="chats">
+    </ol>
+    <audio controls>
+        <source src="{{ url_for('static', path='/audio/seb-are-you-looking-for-something.mp3') }}" type="audio/mp3">
+    </audio>
 
     <ul>
         {% for result in results %}
@@ -67,13 +72,82 @@
             window.location.search = params.toString();
         }
 
+        var results = document.getElementById('results').dataset.results;
+        var query = document.getElementById('query').dataset.query;
+
         /* Plays Seb's voice when visitors tap in the query field. */
         document.onclick = function(event) {
             var audio = document.getElementsByTagName('audio')[0];
-            if (!hasPlayed && event.target.type === 'text') {
+            if (!hasPlayed && query === "" && event.target.type === 'text') {
                 audio.play();
+                hasPlayed = true;
             }
-            hasPlayed = true;
+        }
+
+        /* Play the chat when tapped. */
+        var chats = document.getElementById('chats');
+        chats.onclick = function(event) {
+            var audio = document.getElementsByTagName('audio')[0];
+            audio.play();
+        }
+
+        /* Summarises the results and speaks them to you. */
+        if (results != "[]") {
+            if (!query) {
+                query = 'Show me a random selection of collection items.';
+            }
+            var llm_prompt = `
+                System: You are an ACMI museum guide. Please compare the user's question to the museum collection items in the response and provide an overall summary of how you think it did and why as if you were talking to the user in a short one sentence form suitable for text-to-speech as it will be converted to audio and read back to the visitor.
+
+                Apologise if the results don't match, and provide an anecdote about the data in one of the collection records.
+
+                Example: <summary>. <anecdote>
+
+                User's question: ${query}
+
+                Response:
+
+                ${results}
+            `;
+            fetch('/summarise', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: llm_prompt,
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Summary:', data);
+                fetch('/speak', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: data.replace('ACMI', 'acmee'),
+                })
+                .then(response => response.arrayBuffer())
+                .then(arrayBuffer => {
+                    const blob = new Blob([arrayBuffer], { type: 'audio/mp3' });
+                    const audioUrl = URL.createObjectURL(blob);
+
+                    // Show the transcript
+                    var chats = document.getElementById('chats');
+                    var newChatItem = document.createElement('li');
+                    newChatItem.textContent = data;
+                    chats.appendChild(newChatItem);
+
+                    // Set the audio source to the new URL and play it
+                    const audioElement = document.querySelector('audio');
+                    const sourceElement = audioElement.querySelector('source');
+                    sourceElement.src = audioUrl;
+                    audioElement.load();
+                    audioElement.play();
+                })
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
         }
     </script>
 </body>
