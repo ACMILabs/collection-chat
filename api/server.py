@@ -260,16 +260,30 @@ async def root(
 
 @app.post('/summarise')
 async def summarise(request: Request):
-    """Returns a summary of the text string."""
-
+    """Returns a summary of the visitor's query vs the results, including an anecdote."""
     body = await request.body()
     body = body.decode('utf-8')
-    return llm.invoke(body).content
+    llm_prompt = f"""
+        System: You are an ACMI museum guide. Please compare the user's question to the museum
+        collection items in the response and provide an overall summary of how you think it did
+        and why as if you were talking to the user in a short one sentence form suitable for
+        text-to-speech as it will be converted to audio and read back to the visitor.
+
+        Apologise if the results don't match, and provide an anecdote about the data
+        in one of the collection records.
+
+        Example: <summary>. <anecdote>
+
+        User's query and context:
+
+        {body}
+    """
+    return llm.invoke(llm_prompt).content
 
 
 @app.post('/speak')
 async def speak(request: Request):
-    """Returns an audio stream of the text string."""
+    """Returns an audio stream of the body string."""
 
     text_to_speech = ElevenLabs()
     body = await request.body()
@@ -280,6 +294,16 @@ async def speak(request: Request):
         model='eleven_multilingual_v2',
         stream=True,
     ))
+
+
+@app.post('/similar')
+async def similar(request: Request):
+    """Returns similar items from the vector database to the body string."""
+
+    body = await request.body()
+    body = body.decode('utf-8')
+    results = [json_parser.loads(result.page_content) for result in retriever.invoke(body)]
+    return results
 
 if __name__ == '__main__':
     import uvicorn

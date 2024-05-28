@@ -12,10 +12,15 @@
     <h1><a href="/?json=false" title="Take me home">Show me something</a></h1>
 
     <form>
-        <input type="submit" value="Computer's choice">
+        <input type="text" name="query" id="query" placeholder="{% if query %}{% else %}Type your own question{% endif %}" value="{% if query %}{{ query }}{% endif %}">
         <input type="hidden" name="json" id="json" value="false">
-        <input type="hidden" name="random" id="random" value="true">
     </form>
+
+    <ol id="chats">
+    </ol>
+    <audio controls>
+        <source src="{{ url_for('static', path='/audio/seb-are-you-looking-for-something.mp3') }}" type="audio/mp3">
+    </audio>
 
     <h2>or</h2>
 
@@ -35,15 +40,10 @@
     <h2>or</h2>
 
     <form>
-        <input type="text" name="query" id="query" placeholder="{% if query %}{% else %}Type your own question{% endif %}" value="{% if query %}{{ query }}{% endif %}">
+        <input type="submit" value="Let me suggest something for you">
         <input type="hidden" name="json" id="json" value="false">
+        <input type="hidden" name="random" id="random" value="true">
     </form>
-
-    <ol id="chats">
-    </ol>
-    <audio controls>
-        <source src="{{ url_for('static', path='/audio/seb-are-you-looking-for-something.mp3') }}" type="audio/mp3">
-    </audio>
 
     <ul>
         {% for result in results %}
@@ -96,25 +96,12 @@
             if (!query) {
                 query = 'Show me a random selection of collection items.';
             }
-            var llm_prompt = `
-                System: You are an ACMI museum guide. Please compare the user's question to the museum collection items in the response and provide an overall summary of how you think it did and why as if you were talking to the user in a short one sentence form suitable for text-to-speech as it will be converted to audio and read back to the visitor.
-
-                Apologise if the results don't match, and provide an anecdote about the data in one of the collection records.
-
-                Example: <summary>. <anecdote>
-
-                User's question: ${query}
-
-                Response:
-
-                ${results}
-            `;
             fetch('/summarise', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: llm_prompt,
+                body: `{"query": ${query}, "results": ${results}}`,
             })
             .then(response => response.json())
             .then(data => {
