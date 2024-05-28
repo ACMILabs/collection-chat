@@ -27,7 +27,7 @@
     <form onsubmit="mergeSelectionsAndSubmit(event)">
         {% for option in options %}
         <label for="items">{{ option.title }}</label>
-        <select id="items" name="items" onchange="mergeSelectionsAndSubmit(event)">
+        <select id="items" name="items">
             {% for value in option.options %}
             <option value="{{ value.0 }}" {% if value.1 %}selected{% endif %}>{{ value.0 }}</option>
             {% endfor %}
