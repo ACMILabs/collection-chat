@@ -254,8 +254,33 @@ async def root(
     return templates.TemplateResponse(
         request=request,
         name='index.html',
-        context={'query': query, 'results': results, 'options': options},
+        context={'query': query, 'results': results, 'options': options, 'model': MODEL},
     )
+
+
+@app.post('/similar')
+async def similar(request: Request):
+    """Returns similar items from the vector database to the body string."""
+
+    body = await request.body()
+    body = body.decode('utf-8')
+    results = [json_parser.loads(result.page_content) for result in retriever.invoke(body)]
+    return results
+
+
+@app.post('/speak')
+async def speak(request: Request):
+    """Returns an audio stream of the body string."""
+
+    text_to_speech = ElevenLabs()
+    body = await request.body()
+    body = body.decode('utf-8')
+    return StreamingResponse(text_to_speech.generate(
+        text=body,
+        voice='Seb Chan',
+        model='eleven_multilingual_v2',
+        stream=True,
+    ))
 
 
 @app.post('/summarise')
@@ -280,30 +305,6 @@ async def summarise(request: Request):
     """
     return llm.invoke(llm_prompt).content
 
-
-@app.post('/speak')
-async def speak(request: Request):
-    """Returns an audio stream of the body string."""
-
-    text_to_speech = ElevenLabs()
-    body = await request.body()
-    body = body.decode('utf-8')
-    return StreamingResponse(text_to_speech.generate(
-        text=body,
-        voice='Seb Chan',
-        model='eleven_multilingual_v2',
-        stream=True,
-    ))
-
-
-@app.post('/similar')
-async def similar(request: Request):
-    """Returns similar items from the vector database to the body string."""
-
-    body = await request.body()
-    body = body.decode('utf-8')
-    results = [json_parser.loads(result.page_content) for result in retriever.invoke(body)]
-    return results
 
 if __name__ == '__main__':
     import uvicorn

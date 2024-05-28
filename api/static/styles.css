@@ -111,6 +111,12 @@ h3 + p, h3 + p + p {
     opacity: 1;
 }
 
+.disclaimer {
+    opacity: 0.4;
+    font-size: 0.8rem;
+    padding: 1rem;
+}
+
 @media (max-width: 1224px) {
     li {
         width: 90%;
