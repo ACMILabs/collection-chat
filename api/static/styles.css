@@ -1,0 +1,125 @@
+@font-face {
+    font-family: 'PxGroteskBold';
+    src: url('https://acmi-fonts.s3.ap-southeast-2.amazonaws.com/PxGroteskBold.woff');
+}
+
+@font-face {
+    font-family: 'Fakt';
+    src: url('https://acmi-fonts.s3.ap-southeast-2.amazonaws.com/FaktPro-Normal.woff');
+}
+
+body {
+    text-align: center;
+    max-width: 60rem;
+    margin: 0 auto;
+    font-family: 'Fakt', sans-serif;
+}
+
+label, select, input {
+    font-size: 1.8rem;
+}
+
+select {
+    width: 6rem;
+    position: relative;
+    top: -0.3rem;
+    margin: 0.5rem;
+    font-size: 1.4rem;
+}
+
+input {
+    border-radius: 0.3rem;
+    padding: 0.5rem;
+}
+
+input[type="submit"] {
+    border-radius: 1rem;
+    padding: 0.5rem 1.5rem;
+}
+
+#query {
+    width: 90%;
+}
+
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+audio {
+    padding: 1rem;
+}
+
+h1 {
+    font-family: 'PxGroteskBold', sans-serif;
+    font-size: 3rem;
+    letter-spacing: -0.1rem;
+}
+
+h2, h3 {
+    font-family: 'PxGroteskBold', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 400;
+}
+
+h3 {
+    font-size: 2rem;
+    margin-bottom: 0.8rem;
+    line-height: 1.9rem;
+}
+
+ol, ul {
+    margin: 0;
+    padding: 0;
+}
+
+li {
+    display: inline-block;
+    margin: 1rem 1.5rem;
+    width: 42%;
+    vertical-align: top;
+}
+
+li p {
+    text-align: left;
+}
+
+h3 + p, h3 + p + p {
+    opacity: 0.6;
+    margin: 0.3rem;
+    text-align: center;
+}
+
+#chats li {
+    background-color: lightgray;
+    padding: 2rem 2rem;
+    border-radius: 2rem;
+    line-height: 1.5rem;
+}
+
+.logo {
+    max-width: 10rem;
+    margin-top: 10rem;
+    opacity: 0.1;
+}
+
+.logo:hover {
+    opacity: 1;
+}
+
+.disclaimer {
+    opacity: 0.4;
+    font-size: 0.8rem;
+    padding: 1rem;
+}
+
+@media (max-width: 1224px) {
+    li {
+        width: 90%;
+        margin: 0.5rem;
+    }
+}
