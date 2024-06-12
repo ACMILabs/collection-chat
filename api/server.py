@@ -43,9 +43,13 @@ LLM_BASE_URL = os.getenv('LLM_BASE_URL', None)
 LANGCHAIN_TRACING_V2 = os.getenv('LANGCHAIN_TRACING_V2', 'false').lower() == 'true'
 DOCUMENT_IDS = []
 NUMBER_OF_RESULTS = int(os.getenv('NUMBER_OF_RESULTS', '6'))
+CHAT_PORT = int(os.getenv('CHAT_PORT', '8000'))
 
-_TEMPLATE = """Given the following conversation and a follow up question, rephrase the
-follow up question to be a standalone question, in its original language.
+_TEMPLATE = """Given a chat history and the latest user question
+which might reference context in the chat history,
+formulate a standalone question which can be understood
+without the chat history. Do NOT answer the question,
+just reformulate it if needed and otherwise return it as is.
 
 Chat History:
 {chat_history}
@@ -312,4 +316,4 @@ async def summarise(request: Request):
 if __name__ == '__main__':
     import uvicorn
 
-    uvicorn.run(app, host='0.0.0.0', port=8000)
+    uvicorn.run(app, host='0.0.0.0', port=CHAT_PORT)
