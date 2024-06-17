@@ -107,12 +107,14 @@ def get_random_documents(
     return random_documents
 
 
+embeddings = OpenAIEmbeddings(model=EMBEDDINGS_MODEL or 'text-embedding-ada-002')
+
 if MODEL.startswith('gpt'):
     llm = ChatOpenAI(temperature=0, model=MODEL)
-    embeddings = OpenAIEmbeddings(model=EMBEDDINGS_MODEL or 'text-embedding-ada-002')
 else:
     llm = Ollama(model=MODEL)
-    embeddings = OllamaEmbeddings(model=EMBEDDINGS_MODEL or MODEL)
+    if EMBEDDINGS_MODEL:
+        embeddings = OllamaEmbeddings(model=EMBEDDINGS_MODEL)
     if LLM_BASE_URL:
         llm.base_url = LLM_BASE_URL
         embeddings.base_url = LLM_BASE_URL
