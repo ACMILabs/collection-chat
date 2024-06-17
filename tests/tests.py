@@ -28,13 +28,15 @@ def test_root():
     assert 'Show me something' in response.content.decode('utf-8')
 
 
-@patch('api.server.retriever')
-def test_similar(mock_retriever):
+@patch('api.server.Chroma.similarity_search_with_relevance_scores')
+def test_similar(mock_similarity):
     """
     Test the /similar endpoint returns expected data.
     """
-    mock_retriever.invoke.return_value = [
-        MagicMock(page_content=json.dumps({'key': 'value'}))
+    mock_similarity.return_value = [
+        (MagicMock(
+            page_content=json.dumps({'key': 'value'}),
+        ), 0.64),
     ]
     client = TestClient(app)
     response = client.get('/similar')
@@ -43,6 +45,8 @@ def test_similar(mock_retriever):
     response = client.post('/similar', data={'query': 'ghosts'})
     assert response.status_code == 200
     assert response.json()
+    assert response.json()[0]['key'] == 'value'
+    assert response.json()[0]['score'] == 0.64
 
 
 @patch('api.server.ElevenLabs.generate')

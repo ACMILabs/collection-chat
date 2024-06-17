@@ -271,7 +271,12 @@ async def similar(request: Request):
 
     body = await request.body()
     body = body.decode('utf-8')
-    results = [json_parser.loads(result.page_content) for result in retriever.invoke(body)]
+    responses = docsearch.similarity_search_with_relevance_scores(body, k=NUMBER_OF_RESULTS)
+    results = []
+    for response in responses:
+        result = json_parser.loads(response[0].page_content)
+        result['score'] = response[1]
+        results.append(result)
     return results
 
 
