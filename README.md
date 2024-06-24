@@ -35,7 +35,8 @@ Optional environment variables you can set:
 * `DATABASE_PATH` - set where your Chromadb vector database is located
 * `COLLECTION_NAME` - the name of the Chromadb collection to save your data to
 * `PERSIST_DIRECTORY` - the name of the directory to save your persistant Chromadb data
-* `MODEL` - the OpenAI chat model to use
+* `MODEL` - the large language model to use (defaults to OpenAI `gpt-4o`)
+* `EMBEDDINGS_MODEL` - the embeddings model to use (defauls to OpenAI `text-embedding-ada-002`)
 * `REBUILD` - set to `true` to rebuild your Chromadb vector database
 * `ALL` - set to `true` to rebuild with the entire ACMI Public API collection
 
