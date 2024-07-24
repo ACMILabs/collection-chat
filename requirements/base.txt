@@ -5,7 +5,7 @@ langchain-core
 langserve[all]
 requests
 jq
-chromadb
+chromadb==0.5.3
 furl
 
 # Pin pydantic to see /docs

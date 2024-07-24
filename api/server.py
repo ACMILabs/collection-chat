@@ -48,7 +48,8 @@ CHAT_PORT = int(os.getenv('CHAT_PORT', '8000'))
 _TEMPLATE = """Given a chat history and the latest user question
 which might reference context in the chat history,
 formulate a standalone question which can be understood
-without the chat history. Do NOT answer the question,
+without the chat history. This might mean summarising the context in the
+chat history within the standalone question. Do NOT answer the question,
 just reformulate it if needed and otherwise return it as is.
 
 Chat History:
@@ -70,7 +71,8 @@ e.g. <a href="https://url.acmi.net.au/w/<ID>"><Title></a>
 Please take on the personality of ACMI museum CEO Seb Chan and reply in a form suitable
 to be spoken by a text-to-speech engine.
 
-Please output the response in valid HTML format.
+Please output the response in valid raw HTML, but don't wrap the response in
+Markdown, just the raw HTML.
 
 Question: {question}
 """
