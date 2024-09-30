@@ -1,15 +1,16 @@
 langchain
-langchain-openai
+langgraph
+langchain-chroma
 langchain-community
 langchain-core
+langchain-openai
 langserve[all]
 requests
 jq
-chromadb==0.5.3
 furl
 
 # Pin pydantic to see /docs
-pydantic==1.10.13
+pydantic
 
 # Jinja2 for frontend templates
 jinja2
