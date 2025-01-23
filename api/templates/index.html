@@ -95,6 +95,7 @@
         searchForm.addEventListener('submit', async (event) => {
             event.preventDefault();
             chatsElement.innerHTML = '';
+            resultsList.innerHTML = '';
             const query = queryInput.value.trim();
             if (!query) return;
 
@@ -115,6 +116,7 @@
         randomButton.addEventListener('click', async () => {
             event.preventDefault();
             chatsElement.innerHTML = '';
+            resultsList.innerHTML = '';
             if (!hasPlayed) {
                 const audio = document.getElementsByTagName('audio')[0];
                 audio.play();
@@ -176,12 +178,19 @@
                 displayResults(results);
 
                 // Step 2: Summarise
-                const summary = await getSummary(urlParams.query, results);
+                var summary = await getSummary(urlParams.query, results);
                 if (!summary) return;
 
                 // Add the summarised text to our chat transcript <ol>
                 const li = document.createElement('li');
-                li.textContent = summary.replace(/"/g, '');
+                summary = summary.replace(/\\\"/g, '"');
+                if (summary.startsWith('"')) {
+                    summary = summary.slice(1);
+                }
+                if (summary.endsWith('"')) {
+                    summary = summary.slice(0, -1);
+                }
+                li.textContent = summary;
                 chatsElement.innerHTML = '';
                 chatsElement.appendChild(li);
 
