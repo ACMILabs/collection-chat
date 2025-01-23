@@ -272,7 +272,7 @@ async def summarise(request: Request):
 
         Provide an anecdote about the data in one or more of the collection records.
 
-        Example: <summary>. <anecdote>
+        Example: Did you know <summary>. <anecdote>
 
         User's query and context:
 
