@@ -25,7 +25,7 @@ def test_root():
 
     response = client.get('/?json=false')
     assert response.status_code == 200
-    assert 'Show me something' in response.content.decode('utf-8')
+    assert 'The anecdote machine' in response.content.decode('utf-8')
 
 
 @patch('api.server.Chroma.similarity_search_with_relevance_scores')
@@ -70,7 +70,7 @@ def test_summarise(mock_llm):
     """
     Test the /summarise endpoint returns expected data.
     """
-    mock_llm.invoke.return_value = MagicMock(content=b'An excellent summary.')
+    mock_llm.invoke.return_value = MagicMock(content='An excellent summary.')
 
     client = TestClient(app)
     response = client.get('/summarise')
