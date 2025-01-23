@@ -3,6 +3,7 @@ name: ACMI Collection Chat CI
 on: [push]
 
 env:
+  CHAT_PORT: ${{ secrets.CHAT_PORT }}
   DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
   DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
   DOCKER_REPOSITORY: acmilabs/collection-chat
