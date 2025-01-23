@@ -130,8 +130,11 @@ h3 + p, h3 + p + p {
 }
 
 @media (max-width: 1224px) {
+    body {
+        max-width: 100vw;
+    }
     li {
-        width: 90%;
+        width: 80vw;
         margin: 0.5rem;
     }
 }

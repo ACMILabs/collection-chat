@@ -251,12 +251,21 @@ async def speak(request: Request):
     text_to_speech = ElevenLabs()
     body = await request.body()
     body = body.decode('utf-8')
-    return StreamingResponse(text_to_speech.generate(
-        text=body,
-        voice='Seb Chan',
-        model='eleven_flash_v2_5',
-        stream=True,
-    ), media_type="audio/mpeg")
+    return StreamingResponse(
+        text_to_speech.generate(
+            text=body,
+            voice='Seb Chan',
+            model='eleven_flash_v2_5',
+            stream=True,
+            voice_settings={
+                'stability': 0.55,
+                'similarity_boost': 0.83,
+                'style': 0.19,
+                'use_speaker_boost': True,
+            },
+        ),
+        media_type='audio/mpeg',
+    )
 
 
 @app.post('/summarise')
