@@ -67,6 +67,7 @@ h1 {
     letter-spacing: -0.1rem;
     font-weight: normal;
     margin-bottom: 4rem;
+    line-height: 3.5rem;
 }
 
 h2, h3 {
@@ -77,9 +78,9 @@ h2, h3 {
 }
 
 h3 {
-    font-size: 2rem;
+    font-size: 1.2rem;
     margin-bottom: 0.8rem;
-    line-height: 1.9rem;
+    line-height: 1.3rem;
 }
 
 ol, ul {
@@ -111,6 +112,46 @@ h3 + p, h3 + p + p {
     border-radius: 1rem;
     line-height: 1.5rem;
     text-align: justify;
+    opacity: 0;
+    transform: scaleY(0);
+    transform-origin: top;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+#chats li.show {
+    opacity: 1;
+    transform: scaleY(1);
+}
+
+#resultsList li {
+    width: 25%;
+}
+
+.circle {
+    width: 8rem;
+    height: 8rem;
+    outline: 2px solid;
+    outline-offset: 0.6rem;
+    border-radius: 4rem;
+    margin: auto;
+    margin-bottom: 1.5rem;
+}
+
+.circle:hover {
+    outline: 2px solid grey;
+    opacity: 0.8;
+}
+
+.image {
+    width: 8rem;
+    height: 8rem;
+    background: linear-gradient(#e66465, #9198e5);
+    background-repeat: 'no-repeat';
+    background-size: cover;
+    background-position: center;
+    border-radius: 4rem;
+    transition: opacity 0.3s ease-in-out;
+    opacity: 1;
 }
 
 .logo {
@@ -136,5 +177,8 @@ h3 + p, h3 + p + p {
     li {
         width: 80vw;
         margin: 0.5rem;
+    }
+    #resultsList li {
+        width: 45%;
     }
 }

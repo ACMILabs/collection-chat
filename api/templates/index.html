@@ -29,10 +29,9 @@
     <ul id="resultsList">
         {% for result in results %}
         <li>
+            <a href="https://url.acmi.net.au/w/{{ result.id }}" target="_blank"><div class="circle"><div class="image"></div></div></a>
             <h3><a href="https://url.acmi.net.au/w/{{ result.id }}" target="_blank">{{ result.title }}</a></h3>
-            <p>{{ result.creator_credit }}</p>
             <p>{{ result.headline_credit }}</p>
-            {{ result.brief_description|truncate(200)|safe }}
         </li>
         {% endfor %}
     </ul>
@@ -194,6 +193,10 @@
                 li.textContent = summary;
                 chatsElement.innerHTML = '';
                 chatsElement.appendChild(li);
+                requestAnimationFrame(() => {
+                    // Now toggle the class that triggers the transition
+                    li.classList.add('show');
+                });
 
                 // Step 3: Stream TTS
                 await speakWithStreamTTS(summary.replace('ACMI', 'acmee'));
@@ -323,13 +326,41 @@
                 const title = item.title || 'Untitled';
                 const id = item.id || '';
                 li.innerHTML = `
-                <h3><a href="https://url.acmi.net.au/w/${item.id}" target="_blank">${item.title}</a></h3>
-                <p>${item.creator_credit}</p>
-                <p>${item.headline_credit}</p>
-                ${item.brief_description.substring(0, 200)}...
-            `;
+                    <a href="https://url.acmi.net.au/w/${item.id}" target="_blank"><div class="circle"><div class="image"></div></div></a>
+                    <h3><a href="https://url.acmi.net.au/w/${item.id}" target="_blank">${item.title}</a></h3>
+                    <p>${item.headline_credit}</p>
+                `;
                 resultsList.appendChild(li);
+                getImage(id).then(imageUrl => {
+                if (imageUrl !== '') {
+                    const image = li.getElementsByClassName('image')[0];
+                    image.style.opacity = '0';
+                    setTimeout(() => {
+                        image.style.backgroundImage = `url(${imageUrl})`;
+                        image.style.backgroundRepeat = 'no-repeat';
+                        image.style.backgroundSize = 'cover';
+                        image.style.backgroundPosition = 'center';
+                        image.title = title;
+                        image.alt = title;
+                        image.style.opacity = '1';
+                    }, 300);
+                }
+                });
             });
+        }
+
+        /**
+         * Get an image thumbnail from its XOS Work ID
+         */
+        async function getImage(work_id) {
+            if (!work_id) return '';
+
+            const response = await fetch(`https://embeddings.acmi.net.au/works/${work_id}/`);
+            const data = await response.json();
+            if (data.thumbnail) {
+                return data.thumbnail.image_url;
+            }
+            return '';
         }
     </script>
 </body>
