@@ -303,8 +303,9 @@ async def connection(work_id: str):
         raise HTTPException(status_code=404, detail=f'Document not found for ID {work_id}')
 
     # 2. Run a similarity search on the retrieved document
-    results = docsearch.similarity_search_by_vector(doc_dict['embeddings'], k=2)
+    results = docsearch.similarity_search_by_vector(doc_dict['embeddings'], k=4)
     # The first result in 'results' is the same doc, so the next most similar is at index 1
+    # Let's use the 3th most similar so they're not identical
     if len(results) < 2:
         raise HTTPException(
             status_code=404,
@@ -312,7 +313,7 @@ async def connection(work_id: str):
         )
 
     first_doc = results[0]
-    second_doc = results[1]
+    second_doc = results[-1]
     try:
         doc1_json = json_parser.loads(first_doc.page_content)
     except json_parser.JSONDecodeError:
