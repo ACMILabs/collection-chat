@@ -209,7 +209,7 @@
                 });
 
                 // Step 3: Stream TTS
-                if ('MediaSource' in window) {
+                if ('MediaSource' in window && !isFirefox()) {
                     // MSE streaming approach
                     await speakWithStreamTTS(summary.replace('ACMI', 'acmee'));
                 } else {
@@ -275,7 +275,7 @@
 
                 // When the media source is open, we can feed chunks into a SourceBuffer
                 mediaSource.addEventListener('sourceopen', async () => {
-                    const sourceBuffer = mediaSource.addSourceBuffer('audio/mpeg');
+                    const sourceBuffer = mediaSource.addSourceBuffer('audio/mp3');
                     // We'll queue up chunks if the SourceBuffer is busy
                     let isAppending = false;
                     const chunkQueue = [];
@@ -443,6 +443,13 @@
                 /Apple Computer/.test(vendor) &&
                 !/Chrome|CriOS|FxiOS|EdgiOS|Edg|OPR|Opera|Android/.test(ua)
             );
+        }
+
+        /**
+         * Detect FireFox browsers
+         */
+        function isFirefox() {
+            return navigator.userAgent.toLowerCase().indexOf('firefox') !== -1;
         }
     </script>
 </body>

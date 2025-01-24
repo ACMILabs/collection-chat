@@ -265,7 +265,7 @@ async def speak(request: Request):
                 'use_speaker_boost': True,
             },
         ),
-        media_type='audio/mpeg',
+        media_type='audio/mp3',
     )
 
 
