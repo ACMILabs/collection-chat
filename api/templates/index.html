@@ -14,7 +14,11 @@
 <body>
     <header>
         <h1><a href="/?json=false" title="Take me home">The anecdote machine</a></h1>
-        <h2>The ghost in the machine is <a href="https://www.acmi.net.au/about/who-we-are/seb-chan/" target="_blank">{{ voice }}</a></h2>
+        {% if voice == 'Seb Chan' %}
+            <h2>The ghost in the machine is AI <a href="https://www.acmi.net.au/about/who-we-are/seb-chan/" target="_blank">{{ voice }}</a>, ACMI's CEO and Director</h2>
+        {% else %}
+            <h2>The ghost in the machine is AI {{ voice }}</h2>
+        {% endif %}
     </header>
 
     <form>

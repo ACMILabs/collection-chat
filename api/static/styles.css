@@ -78,6 +78,8 @@ h2, h3 {
 
 h2 {
     opacity: 0.6;
+    max-width: 90%;
+    margin: auto;
 }
 
 h3 {
