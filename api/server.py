@@ -44,6 +44,7 @@ LANGCHAIN_TRACING_V2 = os.getenv('LANGCHAIN_TRACING_V2', 'false').lower() == 'tr
 DOCUMENT_IDS = []
 NUMBER_OF_RESULTS = int(os.getenv('NUMBER_OF_RESULTS', '6'))
 CHAT_PORT = int(os.getenv('CHAT_PORT', '8000'))
+VOICE = os.getenv('VOICE', 'Seb Chan')
 
 _TEMPLATE = """Given a chat history and the latest user question
 which might reference context in the chat history,
@@ -225,7 +226,7 @@ async def root(
     return templates.TemplateResponse(
         request=request,
         name='index.html',
-        context={'query': query, 'results': results, 'model': MODEL},
+        context={'query': query, 'results': results, 'model': MODEL, 'voice': VOICE},
     )
 
 
@@ -254,7 +255,7 @@ async def speak(request: Request):
     return StreamingResponse(
         text_to_speech.generate(
             text=body,
-            voice='Seb Chan',
+            voice=VOICE,
             model='eleven_flash_v2_5',
             stream=True,
             voice_settings={

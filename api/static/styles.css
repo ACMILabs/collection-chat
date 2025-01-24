@@ -43,10 +43,6 @@ input[type="submit"] {
     padding: 0.5rem 1.5rem;
 }
 
-#query {
-    width: 90%;
-}
-
 a {
     color: inherit;
     text-decoration: none;
@@ -58,7 +54,10 @@ a:hover {
 
 audio {
     padding: 1rem;
-    width: 2rem;
+}
+
+header {
+    margin-bottom: 4rem;
 }
 
 h1 {
@@ -66,8 +65,8 @@ h1 {
     font-size: 3rem;
     letter-spacing: -0.1rem;
     font-weight: normal;
-    margin-bottom: 4rem;
     line-height: 3.5rem;
+    margin-bottom: 1rem;
 }
 
 h2, h3 {
@@ -75,6 +74,10 @@ h2, h3 {
     font-size: 1.1rem;
     font-weight: 400;
     font-weight: normal;
+}
+
+h2 {
+    opacity: 0.6;
 }
 
 h3 {
@@ -154,6 +157,10 @@ h3 + p, h3 + p + p {
     opacity: 1;
 }
 
+.read-more {
+    opacity: 0.6;
+}
+
 .logo {
     max-width: 10rem;
     margin-top: 10rem;
@@ -168,6 +175,8 @@ h3 + p, h3 + p + p {
     opacity: 0.4;
     font-size: 0.8rem;
     padding: 1rem;
+    max-width: 32rem;
+    margin: auto;
 }
 
 @media (max-width: 1224px) {
@@ -180,5 +189,8 @@ h3 + p, h3 + p + p {
     }
     #resultsList li {
         width: 45%;
+    }
+    #queryInput {
+        max-width: 80vw;
     }
 }
