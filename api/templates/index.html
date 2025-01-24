@@ -275,7 +275,7 @@
 
                 // When the media source is open, we can feed chunks into a SourceBuffer
                 mediaSource.addEventListener('sourceopen', async () => {
-                    const sourceBuffer = mediaSource.addSourceBuffer('audio/mp3');
+                    const sourceBuffer = mediaSource.addSourceBuffer('audio/mpeg');
                     // We'll queue up chunks if the SourceBuffer is busy
                     let isAppending = false;
                     const chunkQueue = [];
