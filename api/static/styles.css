@@ -132,6 +132,10 @@ h3 + p, h3 + p + p {
     width: 25%;
 }
 
+#resultsList h2 {
+    margin-bottom: 1rem;
+}
+
 .circle {
     width: 8rem;
     height: 8rem;

@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ACMI collection chat</title>
+    <title>ACMI anecdote machine</title>
     <link href="static/styles.css" rel="stylesheet">
     <link rel="icon" type="image/x-icon" href="static/favicon.ico">
     <meta id="results" data-name="results" data-results="{{results}}">
@@ -189,7 +189,7 @@
                 const results = await response.json();
 
                 // Display the results
-                displayResults(results, isRandom, query);
+                displayResults(results, isRandom, query, false);
 
                 // Step 2: Summarise
                 var summary = await getSummary(urlParams.query, results);
@@ -223,6 +223,51 @@
 
             } catch (error) {
                 console.error('fetchCollectionData error:', error);
+            }
+        }
+
+        /**
+         * Get the connection between a work and the next similar work.
+         */
+         async function getConnection(work_id) {
+            try {
+                // GET the data
+                const response = await fetch(`/connection?work_id=${work_id}`, {
+                    method: 'GET',
+                });
+                const results = await response.json();
+                var connection = results.connection;
+
+                // Display the results
+                displayResults(results.works, false, '', true);
+                // Add the summarised text to our chat transcript <ol>
+                const li = document.createElement('li');
+                connection = connection.replace(/\\\"/g, '"');
+                if (connection.startsWith('"')) {
+                    connection = connection.slice(1);
+                }
+                if (connection.endsWith('"')) {
+                    connection = connection.slice(0, -1);
+                }
+                li.textContent = connection;
+                chatsElement.innerHTML = '';
+                chatsElement.appendChild(li);
+                requestAnimationFrame(() => {
+                    // Now toggle the class that triggers the transition
+                    li.classList.add('show');
+                });
+
+                // Step 3: Stream TTS
+                if ('MediaSource' in window && !isFirefox()) {
+                    // MSE streaming approach
+                    await speakWithStreamTTS(connection.replace('ACMI', 'acmee'));
+                } else {
+                    // Fallback: fetch entire audio as Blob
+                    await speakWithoutStreamTTS(connection.replace('ACMI', 'acmee'));
+                }
+
+            } catch (error) {
+                console.error('getConnection error:', error);
             }
         }
 
@@ -358,11 +403,13 @@
         /**
          * Display the JSON results from GET /?json=true in <ul id="resultsList">
          */
-        function displayResults(results, isRandom, query) {
+        function displayResults(results, isRandom, query, isConnection) {
             resultsList.innerHTML = '';
             const heading = document.createElement('h2');
             if (isRandom) {
                 heading.innerText = 'A random selection of ACMI works:';
+            } else if (isConnection) {
+                heading.innerText = 'The connection between these two works:';
             } else {
                 heading.innerText = `Algorithmically related works to: ${query}`;
             }
@@ -388,21 +435,17 @@
                 const titleLink = li.querySelector('.titleLink');
                 circleLink.addEventListener('click', (event) => {
                     event.preventDefault();
-                    queryInput.value = item.title;
-                    const submitEvent = new Event('submit', {
-                        bubbles: true,
-                        cancelable: true
-                    });
-                    searchForm.dispatchEvent(submitEvent);
+                    chatsElement.innerHTML = '';
+                    resultsList.innerHTML = '';
+                    queryInput.value = '';
+                    getConnection(item.id);
                 });
                 titleLink.addEventListener('click', (event) => {
                     event.preventDefault();
-                    queryInput.value = item.title;
-                    const submitEvent = new Event('submit', {
-                        bubbles: true,
-                        cancelable: true
-                    });
-                    searchForm.dispatchEvent(submitEvent);
+                    chatsElement.innerHTML = '';
+                    resultsList.innerHTML = '';
+                    queryInput.value = '';
+                    getConnection(item.id);
                 });
                 getImage(id).then(imageUrl => {
                 if (imageUrl !== '') {

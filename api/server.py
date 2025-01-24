@@ -17,7 +17,7 @@ from operator import itemgetter
 from typing import List, Tuple
 
 from elevenlabs.client import ElevenLabs
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
@@ -289,6 +289,58 @@ async def summarise(request: Request):
         {body}
     """
     return llm.invoke(llm_prompt).content.replace('\"', '"')
+
+
+@app.get('/connection')
+async def connection(work_id: str):
+    """Returns a description of the connection between a Work ID and its next similar item."""
+    # 1. Retrieve the specific document by ID
+    doc_dict = docsearch.get(
+        where={'source': f'https://api.acmi.net.au/works/{work_id}'},
+        include=['embeddings', 'documents'],
+    )
+    if not doc_dict['documents']:
+        raise HTTPException(status_code=404, detail=f'Document not found for ID {work_id}')
+
+    # 2. Run a similarity search on the retrieved document
+    results = docsearch.similarity_search_by_vector(doc_dict['embeddings'], k=2)
+    # The first result in 'results' is the same doc, so the next most similar is at index 1
+    if len(results) < 2:
+        raise HTTPException(
+            status_code=404,
+            detail='No similar document found for ID {work_id}'
+        )
+
+    first_doc = results[0]
+    second_doc = results[1]
+    try:
+        doc1_json = json_parser.loads(first_doc.page_content)
+    except json_parser.JSONDecodeError:
+        doc1_json = {'text': first_doc.page_content}
+    try:
+        doc2_json = json_parser.loads(second_doc.page_content)
+    except json_parser.JSONDecodeError:
+        doc2_json = {'text': second_doc.page_content}
+
+    # 4. Now pass both documents to the LLM (or any other logic)
+    llm_prompt = f"""
+        System: You are an ACMI museum curator. Please compare the two collection records provided
+        and come up with a short 50 word description of how the two are connected.
+
+        You are welcome to use outside knowledge to help formulate your reason.
+
+        The two works for context:
+
+        {doc1_json}
+        {doc2_json}
+    """
+    description = llm.invoke(llm_prompt).content.replace('\"', '"')
+
+    return {
+        'work': work_id,
+        'works': [doc1_json, doc2_json],
+        'connection': description,
+    }
 
 
 if __name__ == '__main__':
