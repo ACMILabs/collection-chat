@@ -299,7 +299,7 @@ async def connection(work_id: str):
         where={'source': f'https://api.acmi.net.au/works/{work_id}'},
         include=['embeddings', 'documents'],
     )
-    if not doc_dict['documents']:
+    if not doc_dict.get('documents'):
         raise HTTPException(status_code=404, detail=f'Document not found for ID {work_id}')
 
     # 2. Run a similarity search on the retrieved document
