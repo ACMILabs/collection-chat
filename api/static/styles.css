@@ -178,8 +178,9 @@ h3 + p, h3 + p + p {
 }
 
 .disclaimer {
-    opacity: 0.4;
-    font-size: 0.8rem;
+    font-family: 'Fakt';
+    font-size: 1rem;
+    opacity: 0.5;
     padding: 1rem;
     max-width: 32rem;
     margin: auto;
