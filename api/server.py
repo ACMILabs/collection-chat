@@ -17,7 +17,7 @@ from operator import itemgetter
 from typing import List, Tuple
 
 from elevenlabs.client import ElevenLabs
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
@@ -27,9 +27,9 @@ from langchain.prompts.prompt import PromptTemplate
 from langchain.schema import format_document
 from langchain.schema.output_parser import StrOutputParser
 from langchain.schema.runnable import RunnableMap, RunnablePassthrough
+from langchain_chroma import Chroma
 from langchain_community.embeddings import OllamaEmbeddings
 from langchain_community.llms import Ollama
-from langchain_community.vectorstores import Chroma
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langserve import add_routes
 from langserve.pydantic_v1 import BaseModel, Field
@@ -44,6 +44,7 @@ LANGCHAIN_TRACING_V2 = os.getenv('LANGCHAIN_TRACING_V2', 'false').lower() == 'tr
 DOCUMENT_IDS = []
 NUMBER_OF_RESULTS = int(os.getenv('NUMBER_OF_RESULTS', '6'))
 CHAT_PORT = int(os.getenv('CHAT_PORT', '8000'))
+VOICE = os.getenv('VOICE', 'Seb Chan')
 
 _TEMPLATE = """Given a chat history and the latest user question
 which might reference context in the chat history,
@@ -113,6 +114,8 @@ embeddings = OpenAIEmbeddings(model=EMBEDDINGS_MODEL or 'text-embedding-ada-002'
 
 if MODEL.startswith('gpt'):
     llm = ChatOpenAI(temperature=0, model=MODEL)
+elif MODEL.startswith('o'):
+    llm = ChatOpenAI(temperature=1, model=MODEL)
 else:
     llm = Ollama(model=MODEL)
     if EMBEDDINGS_MODEL:
@@ -191,45 +194,11 @@ async def root(
     request: Request,
     json: bool = True,
     query: str = '',
-    items: str = '',
     random: bool = False,
 ):
     """Returns the home view."""
 
     results = []
-    options = [
-        {
-            'title': "I'm in a",
-            'options': [
-                ['happy', False],
-                ['content', False],
-                ['nostalgic', False],
-                ['melancholic', False],
-                ['dark', False],
-            ],
-        },
-        {
-            'title': 'mood looking for',
-            'options': [
-                ['tv shows', False],
-                ['films', False],
-                ['games', False],
-                ['objects', False],
-                ['art', False],
-            ],
-        },
-        {
-            'title': 'about',
-            'options': [
-                ['cats', False],
-                ['dogs', False],
-                ['politics', False],
-                ['gender', False],
-                ['sustainability', False],
-                ['space', False],
-            ],
-        },
-    ]
     home_json = {
         'message': 'Welcome to the ACMI Collection Chat API.',
         'api': sorted({route.path for route in app.routes}),
@@ -241,14 +210,6 @@ async def root(
             'that this website may contain images, voices, or names of deceased persons in '
             'photographs, film, audio recordings or text.',
     }
-
-    if items:
-        items = items.split(',')
-        for index, item in enumerate(items):
-            query += f'{options[index]["title"]} {item} '
-            for option in options[index]['options']:
-                if option[0] == item:
-                    option[1] = True
 
     if query:
         results = [json_parser.loads(result.page_content) for result in retriever.invoke(query)]
@@ -265,7 +226,7 @@ async def root(
     return templates.TemplateResponse(
         request=request,
         name='index.html',
-        context={'query': query, 'results': results, 'options': options, 'model': MODEL},
+        context={'query': query, 'results': results, 'model': MODEL, 'voice': VOICE},
     )
 
 
@@ -291,12 +252,21 @@ async def speak(request: Request):
     text_to_speech = ElevenLabs()
     body = await request.body()
     body = body.decode('utf-8')
-    return StreamingResponse(text_to_speech.generate(
-        text=body,
-        voice='Seb Chan',
-        model='eleven_multilingual_v2',
-        stream=True,
-    ))
+    return StreamingResponse(
+        text_to_speech.generate(
+            text=body,
+            voice=VOICE,
+            model='eleven_flash_v2_5',
+            stream=True,
+            voice_settings={
+                'stability': 0.55,
+                'similarity_boost': 0.83,
+                'style': 0.19,
+                'use_speaker_boost': True,
+            },
+        ),
+        media_type='audio/mpeg',
+    )
 
 
 @app.post('/summarise')
@@ -305,21 +275,73 @@ async def summarise(request: Request):
     body = await request.body()
     body = body.decode('utf-8')
     llm_prompt = f"""
-        System: You are an ACMI museum guide. Please compare the user's question to the museum
-        collection items in the response and provide an overall summary of how you think it did
-        and why as if you were talking to the user in a short one sentence form suitable for
-        text-to-speech as it will be converted to audio and read back to the visitor.
+        System: You are an ACMI museum guide. Please compare the visitor's question to the museum
+        collection items in the response and provide a brief summary as if you were talking
+        to the visitor in a short one sentence form suitable for text-to-speech as it will be
+        converted to audio and read back to the visitor.
 
-        Apologise if the results don't match, and provide an anecdote about the data
-        in one of the collection records.
+        Provide an anecdote about the data in one or more of the collection records.
 
-        Example: <summary>. <anecdote>
+        Example: Did you know <summary>. <anecdote>
 
         User's query and context:
 
         {body}
     """
-    return llm.invoke(llm_prompt).content
+    return llm.invoke(llm_prompt).content.replace('\"', '"')
+
+
+@app.get('/connection')
+async def connection(work_id: str):
+    """Returns a description of the connection between a Work ID and its next similar item."""
+    # 1. Retrieve the specific document by ID
+    doc_dict = docsearch.get(
+        where={'source': f'https://api.acmi.net.au/works/{work_id}'},
+        include=['embeddings', 'documents'],
+    )
+    if not doc_dict.get('documents'):
+        raise HTTPException(status_code=404, detail=f'Document not found for ID {work_id}')
+
+    # 2. Run a similarity search on the retrieved document
+    results = docsearch.similarity_search_by_vector(doc_dict['embeddings'], k=4)
+    # The first result in 'results' is the same doc, so the next most similar is at index 1
+    # Let's use the 3th most similar so they're not identical
+    if len(results) < 2:
+        raise HTTPException(
+            status_code=404,
+            detail='No similar document found for ID {work_id}'
+        )
+
+    first_doc = results[0]
+    second_doc = results[-1]
+    try:
+        doc1_json = json_parser.loads(first_doc.page_content)
+    except json_parser.JSONDecodeError:
+        doc1_json = {'text': first_doc.page_content}
+    try:
+        doc2_json = json_parser.loads(second_doc.page_content)
+    except json_parser.JSONDecodeError:
+        doc2_json = {'text': second_doc.page_content}
+
+    # 4. Now pass both documents to the LLM (or any other logic)
+    llm_prompt = f"""
+        System: You are an ACMI museum curator. Please compare the two collection records provided
+        and come up with a short 50 word description of how the two are connected.
+
+        You are welcome to use outside knowledge to help formulate your reason.
+
+        The two works for context:
+
+        {doc1_json}
+        {doc2_json}
+    """
+    description = llm.invoke(llm_prompt).content.replace('\"', '"')
+
+    return {
+        'work': work_id,
+        'works': [doc1_json, doc2_json],
+        'connection': description,
+    }
 
 
 if __name__ == '__main__':

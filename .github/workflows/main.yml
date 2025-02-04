@@ -3,6 +3,7 @@ name: ACMI Collection Chat CI
 on: [push]
 
 env:
+  CHAT_PORT: ${{ secrets.CHAT_PORT }}
   DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
   DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
   DOCKER_REPOSITORY: acmilabs/collection-chat
@@ -46,7 +47,7 @@ jobs:
     - name: Build Python lint and test
       run: |
         cp config.tmpl.env config.env
-        cd development && docker-compose -f docker-compose.yml up --build -d
+        cd development && docker compose -f docker-compose.yml up --build -d
 
     - name: Run Python lint and test
       run: docker exec chat make linttest

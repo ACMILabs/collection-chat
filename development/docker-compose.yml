@@ -9,4 +9,4 @@ services:
     volumes:
       - ../:/code
     ports:
-     - 8000:8000
+     - "${CHAT_PORT}:${CHAT_PORT}"

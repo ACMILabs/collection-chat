@@ -25,7 +25,7 @@ def test_root():
 
     response = client.get('/?json=false')
     assert response.status_code == 200
-    assert 'Show me something' in response.content.decode('utf-8')
+    assert 'The anecdote machine' in response.content.decode('utf-8')
 
 
 @patch('api.server.Chroma.similarity_search_with_relevance_scores')
@@ -70,7 +70,7 @@ def test_summarise(mock_llm):
     """
     Test the /summarise endpoint returns expected data.
     """
-    mock_llm.invoke.return_value = MagicMock(content=b'An excellent summary.')
+    mock_llm.invoke.return_value = MagicMock(content='An excellent summary.')
 
     client = TestClient(app)
     response = client.get('/summarise')
@@ -80,3 +80,60 @@ def test_summarise(mock_llm):
     assert response.status_code == 200
     assert 'ACMI museum guide' in mock_llm.invoke.call_args[0][0]
     assert 'text=Oh+hello' in mock_llm.invoke.call_args[0][0]
+
+
+@patch('api.server.llm')
+@patch('api.server.docsearch')
+def test_connection(mock_docsearch, mock_llm):
+    """
+    Test the /connection endpoint returns expected data.
+    """
+    mock_docsearch.get.return_value = {}
+    mock_llm.invoke.return_value = MagicMock(content='An excellent connection.')
+
+    client = TestClient(app)
+    response = client.get('/connection')
+    assert response.status_code == 422
+
+    response = client.get('/connection?work_id=123')
+    assert response.status_code == 404
+
+    mock_docsearch.get.return_value = {
+        'documents': [
+            {'id': 123, 'title': 'Oh hello'},
+            {'id': 456, 'title': 'Oh hi'},
+        ],
+        'embeddings': [[111, 222], [333, 444]],
+    }
+    response = client.get('/connection?work_id=123')
+    assert response.status_code == 404
+
+    mock_docsearch.similarity_search_by_vector.return_value = [
+        MagicMock(page_content='Oh hello'),
+        MagicMock(page_content='Oh hi'),
+    ]
+    response = client.get('/connection?work_id=123')
+    assert response.status_code == 200
+    mock_docsearch.get.assert_called_with(
+        where={'source': 'https://api.acmi.net.au/works/123'},
+        include=['embeddings', 'documents'],
+    )
+    mock_docsearch.similarity_search_by_vector.call_args.assert_called_with(
+        [[111, 222], [333, 444]],
+        k=4,
+    )
+    assert response.json()['work'] == '123'
+    assert response.json()['works'][0]['text'] == 'Oh hello'
+    assert response.json()['works'][1]['text'] == 'Oh hi'
+    assert response.json()['connection'] == 'An excellent connection.'
+
+    mock_docsearch.similarity_search_by_vector.return_value = [
+        MagicMock(page_content=json.dumps({'id': 123, 'title': 'Oh hello'})),
+        MagicMock(page_content=json.dumps({'id': 456, 'title': 'Oh hi'})),
+    ]
+    response = client.get('/connection?work_id=123')
+    assert response.status_code == 200
+    assert response.json()['work'] == '123'
+    assert response.json()['works'][0]['id'] == 123
+    assert response.json()['works'][1]['id'] == 456
+    assert response.json()['connection'] == 'An excellent connection.'

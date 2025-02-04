@@ -13,6 +13,12 @@ body {
     max-width: 60rem;
     margin: 0 auto;
     font-family: 'Fakt', sans-serif;
+    background-color: black;
+    color: white;
+}
+
+form {
+    margin: 1rem;
 }
 
 label, select, input {
@@ -37,10 +43,6 @@ input[type="submit"] {
     padding: 0.5rem 1.5rem;
 }
 
-#query {
-    width: 90%;
-}
-
 a {
     color: inherit;
     text-decoration: none;
@@ -54,22 +56,36 @@ audio {
     padding: 1rem;
 }
 
+header {
+    margin-bottom: 4rem;
+}
+
 h1 {
     font-family: 'PxGroteskBold', sans-serif;
     font-size: 3rem;
     letter-spacing: -0.1rem;
+    font-weight: normal;
+    line-height: 3.5rem;
+    margin-bottom: 1rem;
 }
 
 h2, h3 {
     font-family: 'PxGroteskBold', sans-serif;
     font-size: 1.1rem;
     font-weight: 400;
+    font-weight: normal;
+}
+
+h2 {
+    opacity: 0.6;
+    max-width: 90%;
+    margin: auto;
 }
 
 h3 {
-    font-size: 2rem;
+    font-size: 1.2rem;
     margin-bottom: 0.8rem;
-    line-height: 1.9rem;
+    line-height: 1.3rem;
 }
 
 ol, ul {
@@ -95,16 +111,66 @@ h3 + p, h3 + p + p {
 }
 
 #chats li {
-    background-color: lightgray;
-    padding: 2rem 2rem;
-    border-radius: 2rem;
+    background-color: rgba(59,130,246,1.0);
+    color: white;
+    padding: 1rem 1.5rem;
+    border-radius: 1rem;
     line-height: 1.5rem;
+    text-align: justify;
+    opacity: 0;
+    transform: scaleY(0);
+    transform-origin: top;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+#chats li.show {
+    opacity: 1;
+    transform: scaleY(1);
+}
+
+#resultsList li {
+    width: 25%;
+}
+
+#resultsList h2 {
+    margin-bottom: 1rem;
+}
+
+.circle {
+    width: 8rem;
+    height: 8rem;
+    outline: 2px solid;
+    outline-offset: 0.6rem;
+    border-radius: 4rem;
+    margin: auto;
+    margin-bottom: 1.5rem;
+}
+
+.circle:hover {
+    outline: 2px solid grey;
+    opacity: 0.8;
+}
+
+.image {
+    width: 8rem;
+    height: 8rem;
+    background: linear-gradient(#e66465, #9198e5);
+    background-repeat: 'no-repeat';
+    background-size: cover;
+    background-position: center;
+    border-radius: 4rem;
+    transition: opacity 0.3s ease-in-out;
+    opacity: 1;
+}
+
+.read-more {
+    opacity: 0.6;
 }
 
 .logo {
     max-width: 10rem;
     margin-top: 10rem;
-    opacity: 0.1;
+    opacity: 0.3;
 }
 
 .logo:hover {
@@ -112,14 +178,26 @@ h3 + p, h3 + p + p {
 }
 
 .disclaimer {
-    opacity: 0.4;
-    font-size: 0.8rem;
+    font-family: 'Fakt';
+    font-size: 1rem;
+    opacity: 0.5;
     padding: 1rem;
+    max-width: 32rem;
+    margin: auto;
 }
 
 @media (max-width: 1224px) {
+    body {
+        max-width: 100vw;
+    }
     li {
-        width: 90%;
+        width: 80vw;
         margin: 0.5rem;
+    }
+    #resultsList li {
+        width: 45%;
+    }
+    #queryInput {
+        max-width: 80vw;
     }
 }
