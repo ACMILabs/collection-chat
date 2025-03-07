@@ -19,7 +19,7 @@ from typing import List, Tuple
 from elevenlabs.client import ElevenLabs
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from langchain.prompts import ChatPromptTemplate
@@ -33,6 +33,7 @@ from langchain_community.llms import Ollama
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langserve import add_routes
 from langserve.pydantic_v1 import BaseModel, Field
+import requests
 
 DATABASE_PATH = os.getenv('DATABASE_PATH', '')
 COLLECTION_NAME = os.getenv('COLLECTION_NAME', 'works')
@@ -45,6 +46,8 @@ DOCUMENT_IDS = []
 NUMBER_OF_RESULTS = int(os.getenv('NUMBER_OF_RESULTS', '6'))
 CHAT_PORT = int(os.getenv('CHAT_PORT', '8000'))
 VOICE = os.getenv('VOICE', 'Seb Chan')
+SUGGESTIONS_API = os.getenv('SUGGESTIONS_API', 'https://api.acmi.net.au/suggestions')
+SUGGESTIONS_API_KEY = os.getenv('SUGGESTIONS_API_KEY')
 
 _TEMPLATE = """Given a chat history and the latest user question
 which might reference context in the chat history,
@@ -342,6 +345,22 @@ async def connection(work_id: str):
         'works': [doc1_json, doc2_json],
         'connection': description,
     }
+
+
+@app.post('/suggestions')
+async def suggestions(request: Request):
+    """Returns the response from the yes/no/fix suggestions API."""
+    json_data = await request.json()
+    response = requests.post(
+        SUGGESTIONS_API,
+        headers={
+            'Content-Type': 'application/json',
+            'Authorization': f'Token {SUGGESTIONS_API_KEY}',
+        },
+        data=json_parser.dumps(json_data),
+        timeout=10,
+    )
+    return JSONResponse(content=response.json(), status_code=response.status_code)
 
 
 if __name__ == '__main__':

@@ -127,6 +127,27 @@ h3 + p, h3 + p + p {
     transform: scaleY(1);
 }
 
+#suggestions {
+    display: none;
+}
+
+#suggestions.show {
+    display: block;
+}
+
+#suggestions li {
+    width: 24px;
+    margin: 0 0.5rem;
+}
+
+#suggestions li:hover {
+    opacity: 0.6;
+}
+
+#suggestions li.disabled {
+    opacity: 0.2;
+}
+
 #resultsList li {
     width: 25%;
 }

@@ -7,8 +7,6 @@
     <title>ACMI anecdote machine</title>
     <link href="static/styles.css" rel="stylesheet">
     <link rel="icon" type="image/x-icon" href="static/favicon.ico">
-    <meta id="results" data-name="results" data-results="{{results}}">
-    <meta id="query" data-name="query" data-query="{{query}}">
 </head>
 
 <body>
@@ -29,6 +27,23 @@
     </form>
 
     <ol id="chats"></ol>
+    <ul id="suggestions">
+        <li>
+            <a href="#" onclick="suggestion(event, 'up')">
+                <img src="static/images/thumbs-up.svg" alt="Good response" title="Good response">
+            </a>
+        </li>
+        <li>
+            <a href="#" onclick="suggestion(event, 'down')">
+                <img src="static/images/thumbs-down.svg" alt="Bad response" title="Bad response">
+            </a>
+        </li>
+        <li>
+            <a href="#" onclick="suggestion(event, 'fix')">
+                <img src="static/images/edit.svg" alt="Provide a better response" title="Provide a better response">
+            </a>
+        </li>
+    </ul>
 
     <audio controls id="audioPlayer">
         <source src="static/audio/seb-hmmm.mp3" type="audio/mp3">
@@ -56,6 +71,7 @@
 
     <script>
         var hasPlayed = false;
+        var hasSuggested = false;
         const searchForm = document.getElementById('searchForm');
         const queryInput = document.getElementById('queryInput');
         const randomButton = document.getElementById('randomBtn');
@@ -210,6 +226,8 @@
                     // Now toggle the class that triggers the transition
                     li.classList.add('show');
                 });
+                const suggestionsElement = document.getElementById('suggestions');
+                suggestionsElement.classList.add('show');
 
                 // Step 3: Stream TTS
                 if ('MediaSource' in window && !isFirefox()) {
@@ -403,6 +421,21 @@
          * Display the JSON results from GET /?json=true in <ul id="resultsList">
          */
         function displayResults(results, isRandom, query, isConnection) {
+            // Add Work IDs to the URL bar
+            const url = new URL(window.location);
+            const params = new URLSearchParams(url.search);
+            params.delete('works');
+            const queryParts = [];
+            for (const [key, value] of params.entries()) {
+                queryParts.push(`${key}=${value}`);
+            }
+            const worksIds = results.map(item => item.id).join(',');
+            queryParts.push(`works=${worksIds}`);
+            const newQuery = queryParts.join('&');
+            const newUrl = `${url.origin}${url.pathname}?${newQuery}`;
+            window.history.pushState({}, '', newUrl);
+
+            // Update page
             resultsList.innerHTML = '';
             const heading = document.createElement('h2');
             if (isRandom) {
@@ -496,6 +529,42 @@
          */
         function isFirefox() {
             return navigator.userAgent.toLowerCase().indexOf('firefox') !== -1;
+        }
+
+        /**
+         * Submit a suggestion
+         */
+        async function suggestion(event, keyword) {
+            event.preventDefault();
+            if (!hasSuggested) {
+                hasSuggested = true;
+                try {
+                    const url = new URL(window.location);
+                    const chatsElement = document.getElementById('chats');
+                    const firstChat = chatsElement.querySelectorAll('li')[0];
+                    const suggestionResponse = await fetch('/suggestions', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            url: url,
+                            text: firstChat.innerText,
+                            vote: keyword,
+                        }),
+                    });
+                    if (!suggestionResponse.ok) {
+                        throw new Error('Error from /suggestions: ' + suggestionResponse.status);
+                    }
+
+                } catch (err) {
+                    console.error('suggestions error:', err);
+                }
+                // Update UI
+                const suggestionsElement = document.getElementById('suggestions');
+                const listItems = suggestionsElement.querySelectorAll('li');
+                listItems.forEach(item => {
+                    item.classList.add('disabled');
+                });
+            }
         }
     </script>
 </body>
