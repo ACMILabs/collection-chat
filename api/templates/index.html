@@ -122,6 +122,7 @@
          */
         searchForm.addEventListener('submit', async (event) => {
             event.preventDefault();
+            enableSuggestionsButtons(true);
             chatsElement.innerHTML = '';
             resultsList.innerHTML = '';
             const query = queryInput.value.trim();
@@ -143,6 +144,7 @@
          */
         randomButton.addEventListener('click', async () => {
             event.preventDefault();
+            enableSuggestionsButtons(true);
             chatsElement.innerHTML = '';
             resultsList.innerHTML = '';
             queryInput.value = '';
@@ -469,6 +471,7 @@
                 const titleLink = li.querySelector('.titleLink');
                 circleLink.addEventListener('click', (event) => {
                     event.preventDefault();
+                    enableSuggestionsButtons(true);
                     chatsElement.innerHTML = '';
                     resultsList.innerHTML = '';
                     queryInput.value = '';
@@ -476,6 +479,7 @@
                 });
                 titleLink.addEventListener('click', (event) => {
                     event.preventDefault();
+                    enableSuggestionsButtons(true);
                     chatsElement.innerHTML = '';
                     resultsList.innerHTML = '';
                     queryInput.value = '';
@@ -538,43 +542,93 @@
          */
         async function suggestion(event, keyword) {
             event.preventDefault();
+            const chatsElement = document.getElementById('chats');
+            const firstChat = chatsElement.querySelector('li');
+            const text = firstChat ? firstChat.innerText : "";
+
+            // For the 'fix' action, create a new text box for the custom suggestion.
+            if (keyword === 'fix' && !hasSuggested) {
+                // Check if the custom suggestion input already exists.
+                let suggestionInput = document.getElementById('customSuggestion');
+                if (!suggestionInput) {
+                    suggestionInput = document.createElement('textarea');
+                    suggestionInput.type = 'text';
+                    suggestionInput.id = 'customSuggestion';
+                    suggestionInput.placeholder = 'Please add your suggested text and press ENTER';
+                    suggestionInput.style.marginTop = '10px';
+
+                    const suggestionsElement = document.getElementById('suggestions');
+                    suggestionsElement.parentNode.insertBefore(suggestionInput, suggestionsElement.nextSibling);
+                    suggestionInput.focus();
+                    suggestionInput.addEventListener('keydown', function handleSuggestion(e) {
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                            const suggestionText = suggestionInput.value.trim();
+                            suggestionInput.removeEventListener('keydown', handleSuggestion);
+                            suggestionInput.remove();
+                            // Add a vote 'down' with a suggestion
+                            submitSuggestion(text, 'down', suggestionText);
+                        }
+                    });
+                }
+            } else {
+                // For 'up' or 'down', just submit directly without a custom suggestion.
+                submitSuggestion(text, keyword, null);
+            }
+        }
+
+        /**
+         * Helper function to POST the suggestion data to the server.
+         */
+        async function submitSuggestion(text, keyword, suggestion) {
             if (!hasSuggested) {
                 hasSuggested = true;
                 try {
                     const url = new URL(window.location);
-                    const chatsElement = document.getElementById('chats');
-                    const firstChat = chatsElement.querySelectorAll('li')[0];
-                    var prompt = `{{ prompts.summarise }}`;
-                    if (promptType == 'connection') {
+                    let prompt = `{{ prompts.summarise }}`;
+                    if (promptType === 'connection') {
                         prompt = `{{ prompts.connection }}`;
                     }
                     const suggestionResponse = await fetch('/suggestions', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            url: url,
-                            text: firstChat.innerText,
+                            url: url.toString(),
+                            text: text,
                             vote: keyword,
                             data: {
                                 model: "{{ model }}",
                                 prompt: prompt,
                             },
+                            suggestion: suggestion,
                         }),
                     });
                     if (!suggestionResponse.ok) {
                         throw new Error('Error from /suggestions: ' + suggestionResponse.status);
                     }
-
                 } catch (err) {
                     console.error('suggestions error:', err);
                 }
-                // Update UI
-                const suggestionsElement = document.getElementById('suggestions');
-                const listItems = suggestionsElement.querySelectorAll('li');
-                listItems.forEach(item => {
-                    item.classList.add('disabled');
-                });
+                // Disable the suggestion buttons after submission.
+                enableSuggestionsButtons(false);
             }
+        }
+
+        /**
+         * Enable or disable the suggestions buttons
+         */
+        function enableSuggestionsButtons(enabled) {
+            const suggestionsElement = document.getElementById('suggestions');
+            const listItems = suggestionsElement.querySelectorAll('li');
+            listItems.forEach(item => {
+                if (enabled) {
+                    item.classList.remove('disabled');
+                    hasSuggested = false;
+                } else {
+                    item.classList.add('disabled');
+                    hasSuggested = true;
+                }
+            });
         }
     </script>
 </body>
