@@ -84,6 +84,33 @@ ANSWER_PROMPT = ChatPromptTemplate.from_template(ANSWER_TEMPLATE)
 
 DEFAULT_DOCUMENT_PROMPT = PromptTemplate.from_template(template='{page_content}')
 
+SUMMARISE_PROMPT = """
+System: You are an ACMI museum guide. Please compare the visitor's question to the museum
+collection items in the response and provide a brief summary as if you were talking
+to the visitor in a short one sentence form suitable for text-to-speech as it will be
+converted to audio and read back to the visitor.
+
+Provide an anecdote about the data in one or more of the collection records.
+
+Example: Did you know <summary>. <anecdote>
+
+User's query and context:
+
+{body}
+"""
+
+CONNECTION_PROMPT = """
+System: You are an ACMI museum curator. Please compare the two collection records provided
+and come up with a short 50 word description of how the two are connected.
+
+You are welcome to use outside knowledge to help formulate your reason.
+
+The two works for context:
+
+{doc1_json}
+{doc2_json}
+"""
+
 
 def _combine_documents(
     docs, document_prompt=DEFAULT_DOCUMENT_PROMPT, document_separator='\n\n'
@@ -226,10 +253,21 @@ async def root(
     if json:
         return home_json
 
+    prompts = {
+        'connection': CONNECTION_PROMPT,
+        'summarise': SUMMARISE_PROMPT,
+    }
+
     return templates.TemplateResponse(
         request=request,
         name='index.html',
-        context={'query': query, 'results': results, 'model': MODEL, 'voice': VOICE},
+        context={
+            'query': query,
+            'results': results,
+            'model': MODEL,
+            'voice': VOICE,
+            'prompts': prompts,
+        },
     )
 
 
@@ -277,20 +315,7 @@ async def summarise(request: Request):
     """Returns a summary of the visitor's query vs the results, including an anecdote."""
     body = await request.body()
     body = body.decode('utf-8')
-    llm_prompt = f"""
-        System: You are an ACMI museum guide. Please compare the visitor's question to the museum
-        collection items in the response and provide a brief summary as if you were talking
-        to the visitor in a short one sentence form suitable for text-to-speech as it will be
-        converted to audio and read back to the visitor.
-
-        Provide an anecdote about the data in one or more of the collection records.
-
-        Example: Did you know <summary>. <anecdote>
-
-        User's query and context:
-
-        {body}
-    """
+    llm_prompt = SUMMARISE_PROMPT.format(body=body)
     return llm.invoke(llm_prompt).content.replace('\"', '"')
 
 
@@ -327,17 +352,7 @@ async def connection(work_id: str):
         doc2_json = {'text': second_doc.page_content}
 
     # 4. Now pass both documents to the LLM (or any other logic)
-    llm_prompt = f"""
-        System: You are an ACMI museum curator. Please compare the two collection records provided
-        and come up with a short 50 word description of how the two are connected.
-
-        You are welcome to use outside knowledge to help formulate your reason.
-
-        The two works for context:
-
-        {doc1_json}
-        {doc2_json}
-    """
+    llm_prompt = CONNECTION_PROMPT.format(doc1_json=doc1_json, doc2_json=doc2_json)
     description = llm.invoke(llm_prompt).content.replace('\"', '"')
 
     return {
