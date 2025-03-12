@@ -137,3 +137,32 @@ def test_connection(mock_docsearch, mock_llm):
     assert response.json()['works'][0]['id'] == 123
     assert response.json()['works'][1]['id'] == 456
     assert response.json()['connection'] == 'An excellent connection.'
+
+
+@patch('api.server.requests.post')
+def test_suggestions(mock_post):
+    """
+    Test the /suggestions endpoint returns the expected response.
+    """
+    client = TestClient(app)
+    fake_response = MagicMock()
+    fake_response.json.return_value = {'success': 'Suggestion created.'}
+    fake_response.status_code = 200
+    mock_post.return_value = fake_response
+    sample_data = {
+        'url': 'https://chat.acmi.net.au/?json=true&works=123',
+        'text': 'A generated response.',
+        'vote': 'up',
+    }
+    response = client.post('/suggestions', json=sample_data)
+
+    assert response.status_code == 200
+    assert response.json() == {'success': 'Suggestion created.'}
+
+    mock_post.assert_called_once()
+    _, called_kwargs = mock_post.call_args
+    headers = called_kwargs.get('headers')
+    data_passed = called_kwargs.get('data')
+    assert headers.get('Content-Type') == 'application/json'
+    assert 'Authorization' in headers
+    assert data_passed == json.dumps(sample_data)
