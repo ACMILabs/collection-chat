@@ -46,6 +46,8 @@ NUMBER_OF_RESULTS = int(os.getenv('NUMBER_OF_RESULTS', '6'))
 CHAT_PORT = int(os.getenv('CHAT_PORT', '8000'))
 VOICE = os.getenv('VOICE', 'Seb Chan')
 ORGANISATION = os.getenv('ORGANISATION', 'ACMI')
+COLLECTION_API = os.getenv('COLLECTION_API', 'https://api.acmi.net.au/works/')
+COLLECTION_LINK = os.getenv('COLLECTION_LINK', 'https://url.acmi.net.au/w/')
 
 _TEMPLATE = """Given a chat history and the latest user question
 which might reference context in the chat history,
@@ -78,6 +80,7 @@ Markdown, just the raw HTML.
 
 Question: {question}
 """
+ANSWER_TEMPLATE = ANSWER_TEMPLATE.replace('https://url.acmi.net.au/w/', COLLECTION_LINK)
 ANSWER_PROMPT = ChatPromptTemplate.from_template(ANSWER_TEMPLATE)
 
 DEFAULT_DOCUMENT_PROMPT = PromptTemplate.from_template(template='{page_content}')
@@ -233,6 +236,7 @@ async def root(
             'model': MODEL,
             'voice': VOICE,
             'organisation': ORGANISATION,
+            'collection_link': COLLECTION_LINK,
         },
     )
 
@@ -303,7 +307,7 @@ async def connection(work_id: str):
     """Returns a description of the connection between a Work ID and its next similar item."""
     # 1. Retrieve the specific document by ID
     doc_dict = docsearch.get(
-        where={'source': f'https://api.acmi.net.au/works/{work_id}'},
+        where={'source': f'{COLLECTION_API}{work_id}'},
         include=['embeddings', 'documents'],
     )
     if not doc_dict.get('documents'):
@@ -356,7 +360,7 @@ async def connection(work_id: str):
 async def works(work_id: str):
     """Returns a work's JSON metadata."""
     doc_dict = docsearch.get(
-        where={'source': f'https://api.acmi.net.au/works/{work_id}'},
+        where={'source': f'{COLLECTION_API}{work_id}'},
         include=['embeddings', 'documents'],
     )
     if not doc_dict.get('documents'):

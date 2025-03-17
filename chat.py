@@ -33,6 +33,7 @@ LLM_BASE_URL = os.getenv('LLM_BASE_URL', None)
 REBUILD = os.getenv('REBUILD', 'false').lower() == 'true'
 HISTORY = os.getenv('HISTORY', 'true').lower() == 'true'
 ALL = os.getenv('ALL', 'false').lower() == 'true'
+ORGANISATION = os.getenv('ORGANISATION', 'ACMI')
 COLLECTION_API = os.getenv('COLLECTION_API', 'https://api.acmi.net.au/works/')
 
 # Set true if you'd like langchain tracing via LangSmith https://smith.langchain.com
@@ -62,12 +63,14 @@ if len(docsearch) < 1 or REBUILD:
     TMP_FILE_PATH = 'data.json'
 
     if os.path.isfile(TMP_FILE_PATH):
-        print('Loading works from the ACMI Public API data.json file you have already created...')
+        print(
+            f'Loading works from the {ORGANISATION} API data.json file you have already created...'
+        )
         with open(TMP_FILE_PATH, 'r', encoding='utf-8') as tmp_file:
             json_data = json.load(tmp_file)
     else:
         if ALL:
-            print('Loading all of the works from the ACMI Public API')
+            print(f'Loading all of the works from the {ORGANISATION} API')
             while True:
                 page_data = requests.get(
                     f'{COLLECTION_API}',
@@ -84,7 +87,7 @@ if len(docsearch) < 1 or REBUILD:
                 if len(json_data['results']) % 1000 == 0:
                     print(f'Downloaded {len(json_data["results"])}...')
         else:
-            print('Loading the first ten pages of works from the ACMI Public API')
+            print(f'Loading the first ten pages of works from the {ORGANISATION} API')
             PAGES = 10
             json_data = {
                 'results': [],
@@ -168,7 +171,7 @@ if HISTORY:
     )
 
 print('=========================')
-print('ACMI collection chat v0.1')
+print(f'{ORGANISATION} collection chat v0.1')
 print('=========================\n')
 
 while True:
