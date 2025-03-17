@@ -33,6 +33,7 @@ LLM_BASE_URL = os.getenv('LLM_BASE_URL', None)
 REBUILD = os.getenv('REBUILD', 'false').lower() == 'true'
 HISTORY = os.getenv('HISTORY', 'true').lower() == 'true'
 ALL = os.getenv('ALL', 'false').lower() == 'true'
+COLLECTION_API = os.getenv('COLLECTION_API', 'https://api.acmi.net.au/works/')
 
 # Set true if you'd like langchain tracing via LangSmith https://smith.langchain.com
 os.environ['LANGCHAIN_TRACING_V2'] = 'false'
@@ -69,12 +70,15 @@ if len(docsearch) < 1 or REBUILD:
             print('Loading all of the works from the ACMI Public API')
             while True:
                 page_data = requests.get(
-                    'https://api.acmi.net.au/works/',
+                    f'{COLLECTION_API}',
                     params=params,
                     timeout=10,
                 ).json()
-                json_data['results'].extend(page_data['results'])
-                if not page_data.get('next'):
+                if isinstance(json_data, list):
+                    json_data['results'].extend(page_data)
+                else:
+                    json_data['results'].extend(page_data['results'])
+                if isinstance(page_data, list) or not page_data.get('next'):
                     break
                 params['page'] = furl(page_data.get('next')).args.get('page')
                 if len(json_data['results']) % 1000 == 0:
@@ -87,7 +91,7 @@ if len(docsearch) < 1 or REBUILD:
             }
             for index in range(1, (PAGES + 1)):
                 page_data = requests.get(
-                    'https://api.acmi.net.au/works/',
+                    f'{COLLECTION_API}',
                     params=params,
                     timeout=10,
                 )
@@ -108,7 +112,7 @@ if len(docsearch) < 1 or REBUILD:
 
     # Add source metadata
     for i, item in enumerate(data):
-        item.metadata['source'] = f'https://api.acmi.net.au/works/{json_data["results"][i]["id"]}'
+        item.metadata['source'] = f'{COLLECTION_API}{json_data["results"][i]["id"]}'
 
     def chunks(input_list, number_per_chunk):
         """Yield successive chunks from the input_list."""
