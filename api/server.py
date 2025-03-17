@@ -48,6 +48,7 @@ VOICE = os.getenv('VOICE', 'Seb Chan')
 ORGANISATION = os.getenv('ORGANISATION', 'ACMI')
 COLLECTION_API = os.getenv('COLLECTION_API', 'https://api.acmi.net.au/works/')
 COLLECTION_LINK = os.getenv('COLLECTION_LINK', 'https://url.acmi.net.au/w/')
+DEBUG = os.getenv('DEBUG', 'false').lower() == 'true'
 
 _TEMPLATE = """Given a chat history and the latest user question
 which might reference context in the chat history,
@@ -371,4 +372,4 @@ async def works(work_id: str):
 if __name__ == '__main__':
     import uvicorn
 
-    uvicorn.run('server:app', host='0.0.0.0', port=CHAT_PORT, reload=True)
+    uvicorn.run('server:app', host='0.0.0.0', port=CHAT_PORT, reload=DEBUG)

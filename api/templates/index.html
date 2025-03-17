@@ -37,10 +37,10 @@
     <ul id="resultsList">
         {% for result in results %}
         <li>
-            <a href="http://localhost:8082/works/{{ result.id }}" target="_blank"><div class="circle"><div class="image"></div></div></a>
-            <h3><a href="http://localhost:8082/works/{{ result.id }}" target="_blank">{{ result.title }}</a></h3>
+            <a href="/works/{{ result.id }}" target="_blank"><div class="circle"><div class="image"></div></div></a>
+            <h3><a href="/works/{{ result.id }}" target="_blank">{{ result.title }}</a></h3>
             <p>{{ result.headline_credit }}</p>
-            <p><a href="http://localhost:8082/works/{{ result.id }}" target="_blank">Read more...</a></p>
+            <p><a href="/works/{{ result.id }}" target="_blank">Read more...</a></p>
         </li>
         {% endfor %}
     </ul>
@@ -470,7 +470,7 @@
         async function getImage(work_id) {
             if (!work_id) return '';
 
-            const response = await fetch(`http://localhost:8082/works/${work_id}/`);
+            const response = await fetch(`/works/${work_id}/`);
             const data = await response.json();
             if (data.images.length > 0) {
                 return data.images[0].fileURL;
