@@ -31,7 +31,7 @@
     <ol id="chats"></ol>
 
     <audio controls id="audioPlayer">
-        <source src="static/audio/{% if organisation == 'ACMI' %}seb-hmmm.mp3{% else %}hmmm.mp3{% endif %}" type="audio/mp3">
+        <source src="static/audio/{% if voice == 'Seb Chan' %}seb-hmmm.mp3{% elif voice == 'John Barrington' %}john-hmmm.mp3{% else %}hmmm.mp3{% endif %}" type="audio/mp3">
     </audio>
 
     <ul id="resultsList">
@@ -73,7 +73,7 @@
             if (!hasPlayed && queryInput.value === "" && event.target.type === 'text') {
                 // Set the audio source to the new URL and play it
                 const sourceElement = audio.querySelector('source');
-                sourceElement.src = 'static/audio/{% if organisation == "ACMI" %}seb-are-you-looking-for-something.mp3{% else %}are-you-looking-for-something.mp3{% endif %}';
+                sourceElement.src = 'static/audio/{% if voice == "Seb Chan" %}seb-are-you-looking-for-something.mp3{% elif voice == "John Barrington" %}john-are-you-looking-for-something.mp3{% else %}are-you-looking-for-something.mp3{% endif %}';
                 audio.load();
                 audio.play();
                 hasPlayed = true;

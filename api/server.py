@@ -268,7 +268,7 @@ async def speak(request: Request):
         text_to_speech.generate(
             text=body,
             voice=VOICE,
-            model='eleven_flash_v2_5',
+            model='eleven_flash_v2',
             stream=True,
             voice_settings={
                 'stability': 0.55,
