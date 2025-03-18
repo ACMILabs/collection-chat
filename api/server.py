@@ -209,8 +209,7 @@ async def root(
         'api': sorted({route.path for route in app.routes}),
         'acknowledgement':
             f'{ORGANISATION} would like to acknowledge the Traditional Custodians of the lands '
-            'and waterways of greater Melbourne, the people of the Kulin Nation, and '
-            f'recognise that {ORGANISATION} is located on the lands of the Wurundjeri people. '
+            'and waterways that we live and work on. Always was, always will be, Aboriginal land'
             'First Nations (Aboriginal and Torres Strait Islander) people should be aware '
             'that this website may contain images, voices, or names of deceased persons in '
             'photographs, film, audio recordings or text.',
