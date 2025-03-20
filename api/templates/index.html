@@ -423,11 +423,17 @@
                 const li = document.createElement('li');
                 const title = item.title || 'Untitled';
                 const id = item.id || '';
+                var collectionLink = `{{ collection_link }}${item.id}`;
+                var itemCredit = item.headline_credit;
+                if (isNationalPortraitGallery()) {
+                    collectionLink = `{{ collection_link }}${item.accessionnumber}`;
+                    itemCredit = item.medium;
+                }
                 li.innerHTML = `
                     <a class="circleLink" href="#"><div class="circle"><div class="image"></div></div></a>
                     <h3><a class="titleLink" href="#">${item.title}</a></h3>
-                    <p>${item.medium}</p>
-                    <p><a href="{{ collection_link }}${item.accessionnumber}" target="_blank" class="read-more">Read more</a></p>
+                    <p>${itemCredit}</p>
+                    <p><a href="${collectionLink}" target="_blank" class="read-more">Read more</a></p>
                 `;
                 resultsList.appendChild(li);
                 const circleLink = li.querySelector('.circleLink');
@@ -469,11 +475,21 @@
          */
         async function getImage(work_id) {
             if (!work_id) return '';
-
-            const response = await fetch(`/works/${work_id}/`);
-            const data = await response.json();
-            if (data.images.length > 0) {
-                return data.images[0].fileURL;
+            var url = `/works/${work_id}/`;
+            if ('{{ organisation }}' == 'ACMI') {
+                url = `https://embeddings.acmi.net.au/works/${work_id}/`;
+                const response = await fetch(url);
+                const data = await response.json();
+                if (data.thumbnail) {
+                    return data.thumbnail.image_url;
+                }
+            } else if (isNationalPortraitGallery()) {
+                url = `/works/${work_id}/`;
+                const response = await fetch(url);
+                const data = await response.json();
+                if (data.images.length > 0) {
+                    return data.images[0].fileURL;
+                }
             }
             return '';
         }
@@ -496,6 +512,13 @@
          */
         function isFirefox() {
             return navigator.userAgent.toLowerCase().indexOf('firefox') !== -1;
+        }
+
+        /**
+         * If collection is from the National Portrait Gallery
+         */
+        function isNationalPortraitGallery() {
+            return '{{ collection_link }}'.includes('portrait');
         }
     </script>
 </body>
