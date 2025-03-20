@@ -35,6 +35,7 @@ HISTORY = os.getenv('HISTORY', 'true').lower() == 'true'
 ALL = os.getenv('ALL', 'false').lower() == 'true'
 ORGANISATION = os.getenv('ORGANISATION', 'ACMI')
 COLLECTION_API = os.getenv('COLLECTION_API', 'https://api.acmi.net.au/works/')
+CHAT_PORT = int(os.getenv('CHAT_PORT', '8000'))
 
 # Set true if you'd like langchain tracing via LangSmith https://smith.langchain.com
 os.environ['LANGCHAIN_TRACING_V2'] = 'false'
@@ -153,10 +154,18 @@ if HISTORY:
     without the chat history. Do NOT answer the question,
     just reformulate it if needed and otherwise return it as is.
 
+    If you find relevant information please use the ID (not the ACMI ID) of the collection item to
+    create a link for the title of the item.
+
     Chat History:
     {chat_history}
     Follow Up Input: {question}
     Standalone question:"""
+    if ORGANISATION == 'National Portrait Gallery':
+        TEMPLATE = TEMPLATE.replace(
+            'ID (not the ACMI ID)',
+            'accessionnumber (not the id)',
+        )
     CONDENSE_QUESTION_PROMPT = PromptTemplate.from_template(TEMPLATE)
     condense_question_chain = LLMChain(
         llm=llm,
@@ -182,8 +191,20 @@ while True:
         else:
             response = retrieval_qa.invoke(query).get('result')
         try:
-            print(f'Answer: {json.loads(response)["answer"]}')
-            print(f'Sources: {json.loads(response)["sources"]}\n')
+            if ORGANISATION == 'ACMI':
+                print(f'Answer: {json.loads(response)["answer"]}')
+                print(f'Sources: {json.loads(response)["sources"]}\n')
+            else:
+                sources = []
+                for source in json.loads(response)["sources"]:
+                    work_id = source.split('/')[-1]
+                    api_response = requests.get(
+                        f'http://localhost:{CHAT_PORT}/works/{work_id}',
+                        timeout=5,
+                    ).json()
+                    sources.append(f'{COLLECTION_API}{api_response.get("accessionnumber")}')
+                print(f'Answer: {json.loads(response)["answer"]}')
+                print(f'Sources: {sources}\n')
         except TypeError:
             print(f'Answer: {response}\n')
     except KeyboardInterrupt:
