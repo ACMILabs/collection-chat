@@ -81,7 +81,16 @@ Markdown, just the raw HTML.
 
 Question: {question}
 """
-ANSWER_TEMPLATE = ANSWER_TEMPLATE.replace('https://url.acmi.net.au/w/', COLLECTION_LINK)
+
+if ORGANISATION != 'ACMI':
+    ANSWER_TEMPLATE = ANSWER_TEMPLATE.replace('https://url.acmi.net.au/w/', COLLECTION_LINK)
+    ANSWER_TEMPLATE = ANSWER_TEMPLATE.replace('ACMI museum CEO Seb Chan', f'{ORGANISATION} staff')
+if ORGANISATION == 'National Portrait Gallery':
+    ANSWER_TEMPLATE = ANSWER_TEMPLATE.replace('<ID>', '<accessionnumber>')
+    ANSWER_TEMPLATE = ANSWER_TEMPLATE.replace(
+        'ID (not the ACMI ID)',
+        'accessionnumber (not the id)',
+    )
 ANSWER_PROMPT = ChatPromptTemplate.from_template(ANSWER_TEMPLATE)
 
 DEFAULT_DOCUMENT_PROMPT = PromptTemplate.from_template(template='{page_content}')
