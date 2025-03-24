@@ -33,6 +33,9 @@ LLM_BASE_URL = os.getenv('LLM_BASE_URL', None)
 REBUILD = os.getenv('REBUILD', 'false').lower() == 'true'
 HISTORY = os.getenv('HISTORY', 'true').lower() == 'true'
 ALL = os.getenv('ALL', 'false').lower() == 'true'
+ORGANISATION = os.getenv('ORGANISATION', 'ACMI')
+COLLECTION_API = os.getenv('COLLECTION_API', 'https://api.acmi.net.au/works/')
+CHAT_PORT = int(os.getenv('CHAT_PORT', '8000'))
 
 # Set true if you'd like langchain tracing via LangSmith https://smith.langchain.com
 os.environ['LANGCHAIN_TRACING_V2'] = 'false'
@@ -61,33 +64,38 @@ if len(docsearch) < 1 or REBUILD:
     TMP_FILE_PATH = 'data.json'
 
     if os.path.isfile(TMP_FILE_PATH):
-        print('Loading works from the ACMI Public API data.json file you have already created...')
+        print(
+            f'Loading works from the {ORGANISATION} API data.json file you have already created...'
+        )
         with open(TMP_FILE_PATH, 'r', encoding='utf-8') as tmp_file:
             json_data = json.load(tmp_file)
     else:
         if ALL:
-            print('Loading all of the works from the ACMI Public API')
+            print(f'Loading all of the works from the {ORGANISATION} API')
             while True:
                 page_data = requests.get(
-                    'https://api.acmi.net.au/works/',
+                    f'{COLLECTION_API}',
                     params=params,
                     timeout=10,
                 ).json()
-                json_data['results'].extend(page_data['results'])
-                if not page_data.get('next'):
+                if isinstance(json_data, list):
+                    json_data['results'].extend(page_data)
+                else:
+                    json_data['results'].extend(page_data['results'])
+                if isinstance(page_data, list) or not page_data.get('next'):
                     break
                 params['page'] = furl(page_data.get('next')).args.get('page')
                 if len(json_data['results']) % 1000 == 0:
                     print(f'Downloaded {len(json_data["results"])}...')
         else:
-            print('Loading the first ten pages of works from the ACMI Public API')
+            print(f'Loading the first ten pages of works from the {ORGANISATION} API')
             PAGES = 10
             json_data = {
                 'results': [],
             }
             for index in range(1, (PAGES + 1)):
                 page_data = requests.get(
-                    'https://api.acmi.net.au/works/',
+                    f'{COLLECTION_API}',
                     params=params,
                     timeout=10,
                 )
@@ -108,7 +116,7 @@ if len(docsearch) < 1 or REBUILD:
 
     # Add source metadata
     for i, item in enumerate(data):
-        item.metadata['source'] = f'https://api.acmi.net.au/works/{json_data["results"][i]["id"]}'
+        item.metadata['source'] = f'{COLLECTION_API}{json_data["results"][i]["id"]}'
 
     def chunks(input_list, number_per_chunk):
         """Yield successive chunks from the input_list."""
@@ -146,10 +154,18 @@ if HISTORY:
     without the chat history. Do NOT answer the question,
     just reformulate it if needed and otherwise return it as is.
 
+    If you find relevant information please use the ID (not the ACMI ID) of the collection item to
+    create a link for the title of the item.
+
     Chat History:
     {chat_history}
     Follow Up Input: {question}
     Standalone question:"""
+    if ORGANISATION == 'National Portrait Gallery':
+        TEMPLATE = TEMPLATE.replace(
+            'ID (not the ACMI ID)',
+            'accessionnumber (not the id)',
+        )
     CONDENSE_QUESTION_PROMPT = PromptTemplate.from_template(TEMPLATE)
     condense_question_chain = LLMChain(
         llm=llm,
@@ -164,7 +180,7 @@ if HISTORY:
     )
 
 print('=========================')
-print('ACMI collection chat v0.1')
+print(f'{ORGANISATION} collection chat v0.1')
 print('=========================\n')
 
 while True:
@@ -175,8 +191,20 @@ while True:
         else:
             response = retrieval_qa.invoke(query).get('result')
         try:
-            print(f'Answer: {json.loads(response)["answer"]}')
-            print(f'Sources: {json.loads(response)["sources"]}\n')
+            if ORGANISATION == 'ACMI':
+                print(f'Answer: {json.loads(response)["answer"]}')
+                print(f'Sources: {json.loads(response)["sources"]}\n')
+            else:
+                sources = []
+                for source in json.loads(response)["sources"]:
+                    work_id = source.split('/')[-1]
+                    api_response = requests.get(
+                        f'http://localhost:{CHAT_PORT}/works/{work_id}',
+                        timeout=5,
+                    ).json()
+                    sources.append(f'{COLLECTION_API}{api_response.get("accessionnumber")}')
+                print(f'Answer: {json.loads(response)["answer"]}')
+                print(f'Sources: {sources}\n')
         except TypeError:
             print(f'Answer: {response}\n')
     except KeyboardInterrupt:

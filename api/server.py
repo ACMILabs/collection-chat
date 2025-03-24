@@ -45,6 +45,10 @@ DOCUMENT_IDS = []
 NUMBER_OF_RESULTS = int(os.getenv('NUMBER_OF_RESULTS', '6'))
 CHAT_PORT = int(os.getenv('CHAT_PORT', '8000'))
 VOICE = os.getenv('VOICE', 'Seb Chan')
+ORGANISATION = os.getenv('ORGANISATION', 'ACMI')
+COLLECTION_API = os.getenv('COLLECTION_API', 'https://api.acmi.net.au/works/')
+COLLECTION_LINK = os.getenv('COLLECTION_LINK', 'https://url.acmi.net.au/w/')
+DEBUG = os.getenv('DEBUG', 'false').lower() == 'true'
 
 _TEMPLATE = """Given a chat history and the latest user question
 which might reference context in the chat history,
@@ -77,6 +81,16 @@ Markdown, just the raw HTML.
 
 Question: {question}
 """
+
+if ORGANISATION != 'ACMI':
+    ANSWER_TEMPLATE = ANSWER_TEMPLATE.replace('https://url.acmi.net.au/w/', COLLECTION_LINK)
+    ANSWER_TEMPLATE = ANSWER_TEMPLATE.replace('ACMI museum CEO Seb Chan', f'{ORGANISATION} staff')
+if ORGANISATION == 'National Portrait Gallery':
+    ANSWER_TEMPLATE = ANSWER_TEMPLATE.replace('<ID>', '<accessionnumber>')
+    ANSWER_TEMPLATE = ANSWER_TEMPLATE.replace(
+        'ID (not the ACMI ID)',
+        'accessionnumber (not the id)',
+    )
 ANSWER_PROMPT = ChatPromptTemplate.from_template(ANSWER_TEMPLATE)
 
 DEFAULT_DOCUMENT_PROMPT = PromptTemplate.from_template(template='{page_content}')
@@ -200,12 +214,11 @@ async def root(
 
     results = []
     home_json = {
-        'message': 'Welcome to the ACMI Collection Chat API.',
+        'message': f'Welcome to the {ORGANISATION} Collection Chat API.',
         'api': sorted({route.path for route in app.routes}),
         'acknowledgement':
-            'ACMI would like to acknowledge the Traditional Custodians of the lands '
-            'and waterways of greater Melbourne, the people of the Kulin Nation, and '
-            'recognise that ACMI is located on the lands of the Wurundjeri people. '
+            f'{ORGANISATION} would like to acknowledge the Traditional Custodians of the lands '
+            'and waterways that we live and work on. Always was, always will be, Aboriginal land'
             'First Nations (Aboriginal and Torres Strait Islander) people should be aware '
             'that this website may contain images, voices, or names of deceased persons in '
             'photographs, film, audio recordings or text.',
@@ -226,7 +239,14 @@ async def root(
     return templates.TemplateResponse(
         request=request,
         name='index.html',
-        context={'query': query, 'results': results, 'model': MODEL, 'voice': VOICE},
+        context={
+            'query': query,
+            'results': results,
+            'model': MODEL,
+            'voice': VOICE,
+            'organisation': ORGANISATION,
+            'collection_link': COLLECTION_LINK,
+        },
     )
 
 
@@ -256,7 +276,7 @@ async def speak(request: Request):
         text_to_speech.generate(
             text=body,
             voice=VOICE,
-            model='eleven_flash_v2_5',
+            model='eleven_flash_v2',
             stream=True,
             voice_settings={
                 'stability': 0.55,
@@ -275,7 +295,7 @@ async def summarise(request: Request):
     body = await request.body()
     body = body.decode('utf-8')
     llm_prompt = f"""
-        System: You are an ACMI museum guide. Please compare the visitor's question to the museum
+        System: You are an {ORGANISATION} of Australia guide. Please compare the visitor's question to the
         collection items in the response and provide a brief summary as if you were talking
         to the visitor in a short one sentence form suitable for text-to-speech as it will be
         converted to audio and read back to the visitor.
@@ -296,7 +316,7 @@ async def connection(work_id: str):
     """Returns a description of the connection between a Work ID and its next similar item."""
     # 1. Retrieve the specific document by ID
     doc_dict = docsearch.get(
-        where={'source': f'https://api.acmi.net.au/works/{work_id}'},
+        where={'source': f'{COLLECTION_API}{work_id}'},
         include=['embeddings', 'documents'],
     )
     if not doc_dict.get('documents'):
@@ -325,8 +345,9 @@ async def connection(work_id: str):
 
     # 4. Now pass both documents to the LLM (or any other logic)
     llm_prompt = f"""
-        System: You are an ACMI museum curator. Please compare the two collection records provided
-        and come up with a short 50 word description of how the two are connected.
+        System: You are a {ORGANISATION} of Australia curator.
+        Please compare the two collection records provided and come up with a
+        short 50 word description of how the two are connected.
 
         You are welcome to use outside knowledge to help formulate your reason.
 
@@ -344,7 +365,19 @@ async def connection(work_id: str):
     }
 
 
+@app.get('/works/{work_id}')
+async def works(work_id: str):
+    """Returns a work's JSON metadata."""
+    doc_dict = docsearch.get(
+        where={'source': f'{COLLECTION_API}{work_id}'},
+        include=['embeddings', 'documents'],
+    )
+    if not doc_dict.get('documents'):
+        raise HTTPException(status_code=404, detail=f'Document not found for ID {work_id}')
+    return json_parser.loads(doc_dict.get('documents')[0])
+
+
 if __name__ == '__main__':
     import uvicorn
 
-    uvicorn.run(app, host='0.0.0.0', port=CHAT_PORT)
+    uvicorn.run('server:app', host='0.0.0.0', port=CHAT_PORT, reload=DEBUG)

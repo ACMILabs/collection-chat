@@ -2,7 +2,7 @@ import json
 from unittest.mock import MagicMock, patch
 from fastapi.testclient import TestClient
 
-from api.server import app
+from api.server import app, COLLECTION_API, ORGANISATION
 
 
 def test_root():
@@ -12,8 +12,8 @@ def test_root():
     client = TestClient(app)
     response = client.get('/')
     assert response.status_code == 200
-    assert response.json()['message'] == 'Welcome to the ACMI Collection Chat API.'
-    assert 'ACMI would like to acknowledge the Traditional Custodians'\
+    assert response.json()['message'] == f'Welcome to the {ORGANISATION} Collection Chat API.'
+    assert f'{ORGANISATION} would like to acknowledge the Traditional Custodians'\
         in response.json()['acknowledgement']
     assert '/' in response.json()['api']
     assert '/docs' in response.json()['api']
@@ -78,7 +78,7 @@ def test_summarise(mock_llm):
 
     response = client.post('/summarise', data={'text': 'Oh hello!'})
     assert response.status_code == 200
-    assert 'ACMI museum guide' in mock_llm.invoke.call_args[0][0]
+    assert f'{ORGANISATION} of Australia guide' in mock_llm.invoke.call_args[0][0]
     assert 'text=Oh+hello' in mock_llm.invoke.call_args[0][0]
 
 
@@ -115,7 +115,7 @@ def test_connection(mock_docsearch, mock_llm):
     response = client.get('/connection?work_id=123')
     assert response.status_code == 200
     mock_docsearch.get.assert_called_with(
-        where={'source': 'https://api.acmi.net.au/works/123'},
+        where={'source': f'{COLLECTION_API}123'},
         include=['embeddings', 'documents'],
     )
     mock_docsearch.similarity_search_by_vector.call_args.assert_called_with(
@@ -137,3 +137,32 @@ def test_connection(mock_docsearch, mock_llm):
     assert response.json()['works'][0]['id'] == 123
     assert response.json()['works'][1]['id'] == 456
     assert response.json()['connection'] == 'An excellent connection.'
+
+
+@patch('api.server.docsearch')
+def test_works(mock_docsearch):
+    """
+    Test the /works endpoint returns expected data.
+    """
+    mock_docsearch.get.return_value = {}
+    client = TestClient(app)
+    response = client.get('/works')
+    assert response.status_code == 404
+
+    response = client.get('/works/123')
+    assert response.status_code == 404
+
+    mock_docsearch.get.return_value = {
+        'documents': [
+            '{"id": 123, "title": "Oh hello"}',
+            '{"id": 456, "title": "Oh hi"}',
+        ],
+        'embeddings': [[111, 222], [333, 444]],
+    }
+    response = client.get('/works/123')
+    assert response.status_code == 200
+    mock_docsearch.get.assert_called_with(
+        where={'source': f'{COLLECTION_API}123'},
+        include=['embeddings', 'documents'],
+    )
+    assert response.json()['id'] == 123
