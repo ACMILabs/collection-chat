@@ -43,6 +43,17 @@ input[type="submit"] {
     padding: 0.5rem 1.5rem;
 }
 
+textarea {
+    font-size: 1rem;
+    padding: 1rem 1.5rem;
+    border-radius: 1rem;
+    width: 25rem;
+    max-width: 80vw;
+    line-height: 1.5rem;
+    margin: 0 auto;
+    display: block;
+}
+
 a {
     color: inherit;
     text-decoration: none;
@@ -125,6 +136,28 @@ h3 + p, h3 + p + p {
 #chats li.show {
     opacity: 1;
     transform: scaleY(1);
+}
+
+#suggestions {
+    display: none;
+}
+
+#suggestions.show {
+    display: block;
+}
+
+#suggestions li {
+    width: 24px;
+    margin: 0 0.5rem;
+}
+
+#suggestions li:hover {
+    opacity: 0.6;
+}
+
+#suggestions li.disabled {
+    opacity: 0.2;
+    pointer-events: none;
 }
 
 #resultsList li {

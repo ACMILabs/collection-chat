@@ -7,8 +7,6 @@
     <title>{{ organisation }} anecdote machine</title>
     <link href="static/styles.css" rel="stylesheet">
     <link rel="icon" type="image/x-icon" href="static/favicon.ico">
-    <meta id="results" data-name="results" data-results="{{results}}">
-    <meta id="query" data-name="query" data-query="{{query}}">
 </head>
 
 <body>
@@ -29,6 +27,23 @@
     </form>
 
     <ol id="chats"></ol>
+    <ul id="suggestions">
+        <li>
+            <a href="#" onclick="suggestion(event, 'up')">
+                <img src="static/images/thumbs-up.svg" alt="Good response" title="Good response">
+            </a>
+        </li>
+        <li>
+            <a href="#" onclick="suggestion(event, 'down')">
+                <img src="static/images/thumbs-down.svg" alt="Bad response" title="Bad response">
+            </a>
+        </li>
+        <li>
+            <a href="#" onclick="suggestion(event, 'fix')">
+                <img src="static/images/edit.svg" alt="Provide a better response" title="Provide a better response">
+            </a>
+        </li>
+    </ul>
 
     <audio controls id="audioPlayer">
         <source src="static/audio/{% if voice == 'Seb Chan' %}seb-hmmm.mp3{% elif voice == 'John Barrington' %}john-hmmm.mp3{% else %}hmmm.mp3{% endif %}" type="audio/mp3">
@@ -56,6 +71,8 @@
 
     <script>
         var hasPlayed = false;
+        var hasSuggested = false;
+        var promptType = 'summarise';
         const searchForm = document.getElementById('searchForm');
         const queryInput = document.getElementById('queryInput');
         const randomButton = document.getElementById('randomBtn');
@@ -105,6 +122,7 @@
          */
         searchForm.addEventListener('submit', async (event) => {
             event.preventDefault();
+            enableSuggestionsButtons(true);
             chatsElement.innerHTML = '';
             resultsList.innerHTML = '';
             const query = queryInput.value.trim();
@@ -126,6 +144,7 @@
          */
         randomButton.addEventListener('click', async () => {
             event.preventDefault();
+            enableSuggestionsButtons(true);
             chatsElement.innerHTML = '';
             resultsList.innerHTML = '';
             queryInput.value = '';
@@ -210,6 +229,8 @@
                     // Now toggle the class that triggers the transition
                     li.classList.add('show');
                 });
+                const suggestionsElement = document.getElementById('suggestions');
+                suggestionsElement.classList.add('show');
 
                 // Step 3: Stream TTS
                 if ('MediaSource' in window && !isFirefox()) {
@@ -230,6 +251,7 @@
          */
          async function getConnection(work_id) {
             try {
+                promptType = 'connection';
                 // GET the data
                 const response = await fetch(`/connection?work_id=${work_id}`, {
                     method: 'GET',
@@ -403,6 +425,21 @@
          * Display the JSON results from GET /?json=true in <ul id="resultsList">
          */
         function displayResults(results, isRandom, query, isConnection) {
+            // Add Work IDs to the URL bar
+            const url = new URL(window.location);
+            const params = new URLSearchParams(url.search);
+            params.delete('works');
+            const queryParts = [];
+            for (const [key, value] of params.entries()) {
+                queryParts.push(`${key}=${value}`);
+            }
+            const worksIds = results.map(item => item.id).join(',');
+            queryParts.push(`works=${worksIds}`);
+            const newQuery = queryParts.join('&');
+            const newUrl = `${url.origin}${url.pathname}?${newQuery}`;
+            window.history.pushState({}, '', newUrl);
+
+            // Update page
             resultsList.innerHTML = '';
             const heading = document.createElement('h2');
             if (isRandom) {
@@ -440,6 +477,7 @@
                 const titleLink = li.querySelector('.titleLink');
                 circleLink.addEventListener('click', (event) => {
                     event.preventDefault();
+                    enableSuggestionsButtons(true);
                     chatsElement.innerHTML = '';
                     resultsList.innerHTML = '';
                     queryInput.value = '';
@@ -447,6 +485,7 @@
                 });
                 titleLink.addEventListener('click', (event) => {
                     event.preventDefault();
+                    enableSuggestionsButtons(true);
                     chatsElement.innerHTML = '';
                     resultsList.innerHTML = '';
                     queryInput.value = '';
@@ -515,7 +554,100 @@
         }
 
         /**
-         * If collection is from the National Portrait Gallery
+         * Submit a suggestion
+         */
+        async function suggestion(event, keyword) {
+            event.preventDefault();
+            const chatsElement = document.getElementById('chats');
+            const firstChat = chatsElement.querySelector('li');
+            const text = firstChat ? firstChat.innerText : "";
+
+            // For the 'fix' action, create a new text box for the custom suggestion.
+            if (keyword === 'fix' && !hasSuggested) {
+                // Check if the custom suggestion input already exists.
+                let suggestionInput = document.getElementById('customSuggestion');
+                if (!suggestionInput) {
+                    suggestionInput = document.createElement('textarea');
+                    suggestionInput.type = 'text';
+                    suggestionInput.id = 'customSuggestion';
+                    suggestionInput.placeholder = 'Please add your suggested text and press ENTER';
+                    suggestionInput.style.marginTop = '10px';
+
+                    const suggestionsElement = document.getElementById('suggestions');
+                    suggestionsElement.parentNode.insertBefore(suggestionInput, suggestionsElement.nextSibling);
+                    suggestionInput.focus();
+                    suggestionInput.addEventListener('keydown', function handleSuggestion(e) {
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                            const suggestionText = suggestionInput.value.trim();
+                            suggestionInput.removeEventListener('keydown', handleSuggestion);
+                            suggestionInput.remove();
+                            // Add a vote 'down' with a suggestion
+                            submitSuggestion(text, 'down', suggestionText);
+                        }
+                    });
+                }
+            } else {
+                // For 'up' or 'down', just submit directly without a custom suggestion.
+                submitSuggestion(text, keyword, null);
+            }
+        }
+
+        /**
+         * Helper function to POST the suggestion data to the server.
+         */
+        async function submitSuggestion(text, keyword, suggestion) {
+            if (!hasSuggested) {
+                hasSuggested = true;
+                try {
+                    const url = new URL(window.location);
+                    let prompt = `{{ prompts.summarise }}`;
+                    if (promptType === 'connection') {
+                        prompt = `{{ prompts.connection }}`;
+                    }
+                    const suggestionResponse = await fetch('/suggestions', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            url: url.toString(),
+                            text: text,
+                            vote: keyword,
+                            data: {
+                                model: "{{ model }}",
+                                prompt: prompt,
+                            },
+                            suggestion: suggestion,
+                        }),
+                    });
+                    if (!suggestionResponse.ok) {
+                        throw new Error('Error from /suggestions: ' + suggestionResponse.status);
+                    }
+                } catch (err) {
+                    console.error('suggestions error:', err);
+                }
+                // Disable the suggestion buttons after submission.
+                enableSuggestionsButtons(false);
+            }
+        }
+
+        /**
+         * Enable or disable the suggestions buttons
+         */
+        function enableSuggestionsButtons(enabled) {
+            const suggestionsElement = document.getElementById('suggestions');
+            const listItems = suggestionsElement.querySelectorAll('li');
+            listItems.forEach(item => {
+                if (enabled) {
+                    item.classList.remove('disabled');
+                    hasSuggested = false;
+                } else {
+                    item.classList.add('disabled');
+                    hasSuggested = true;
+                }
+            });
+        }
+
+        /** If collection is from the National Portrait Gallery
          */
         function isNationalPortraitGallery() {
             return '{{ collection_link }}'.includes('portrait');
