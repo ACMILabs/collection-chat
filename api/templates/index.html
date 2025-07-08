@@ -171,13 +171,14 @@
             const urlParams = new URLSearchParams(window.location.search);
             const query = urlParams.get('query') || '';
             const isRandom = urlParams.has('random');
+            const works = urlParams.get('works') || '';
 
             // Pre-populate the input field
             queryInput.value = query;
 
             // Only fetch if there's something to do
-            if (query || isRandom) {
-                await fetchCollectionData(query, isRandom);
+            if (query || isRandom || works) {
+                await fetchCollectionData(query, isRandom, works);
             }
         }
 
@@ -188,7 +189,7 @@
          * 3) POST /summarise
          * 4) Stream audio from /speak with MediaSource
          */
-        async function fetchCollectionData(query, isRandom) {
+        async function fetchCollectionData(query, isRandom, works) {
             try {
                 // Step 1: GET from /?json=true ...
                 let urlParams = new URLSearchParams();
@@ -198,13 +199,25 @@
                     urlParams.set('query', 'Show me a random selection of collection items.')
                 } else if (query) {
                     urlParams.set('query', query);
+                } else if (works) {
+                    urlParams.set('works', works);
                 }
 
-                // GET the data
-                const response = await fetch('/?' + urlParams.toString(), {
-                    method: 'GET',
-                });
-                const results = await response.json();
+                let results;
+                if (works) {
+                    results = {{ results | tojson }};
+                } else {
+                    // GET the data
+                    const response = await fetch('/?' + urlParams.toString(), {
+                        method: 'GET',
+                    });
+                    results = await response.json();
+                }
+
+                if (results.length === 2) {
+                    getConnection(results[0].id);
+                    return;
+                }
 
                 // Display the results
                 displayResults(results, isRandom, query, false);
