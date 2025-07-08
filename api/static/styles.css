@@ -120,6 +120,12 @@ h3 + p, h3 + p + p {
     text-align: center;
 }
 
+footer {
+    margin-bottom: 1rem;
+    opacity: 0.6;
+    font-size: 0.9rem;
+}
+
 #chats li {
     background-color: rgba(59,130,246,1.0);
     color: white;
@@ -202,7 +208,7 @@ h3 + p, h3 + p + p {
 .logo {
     max-width: 10rem;
     margin-top: 10rem;
-    opacity: 0.3;
+    opacity: 0.6;
 }
 
 .logo:hover {
@@ -211,9 +217,7 @@ h3 + p, h3 + p + p {
 
 .disclaimer {
     font-family: 'Fakt';
-    font-size: 1rem;
-    padding: 1rem;
-    max-width: 32rem;
+    max-width: 34rem;
     margin: auto;
 }
 
