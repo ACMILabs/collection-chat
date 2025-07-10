@@ -47,8 +47,10 @@ textarea {
     font-size: 1rem;
     padding: 1rem 1.5rem;
     border-radius: 1rem;
-    width: 25rem;
-    max-width: 80vw;
+    border: 0;
+    width: 80%;
+    max-width: 80%;
+    min-width: 80%;
     line-height: 1.5rem;
     margin: 0 auto;
     display: block;
@@ -68,7 +70,7 @@ audio {
 }
 
 header {
-    margin-bottom: 4rem;
+    margin-bottom: 2rem;
 }
 
 h1 {
@@ -130,7 +132,9 @@ footer {
     background-color: rgba(59,130,246,1.0);
     color: white;
     padding: 1rem 1.5rem;
-    border-radius: 1rem;
+    margin: 0;
+    margin-top: 1rem;
+    border-radius: 1rem 1rem 0rem 0rem;
     line-height: 1.5rem;
     text-align: justify;
     opacity: 0;
@@ -139,12 +143,21 @@ footer {
     transition: opacity 0.3s ease, transform 0.3s ease;
 }
 
-#chats li.show {
+#chats li.show, #suggestions.show {
     opacity: 1;
     transform: scaleY(1);
 }
 
 #suggestions {
+    margin: 0 auto;
+    width: 42%;
+    padding: 1.5rem;
+    background-color: rgb(220, 220, 220);
+    color: rgb(82, 82, 82);
+    border-radius: 0rem 0rem 1rem 1rem;
+    line-height: 1.5rem;
+    opacity: 0;
+    transform: scaleY(0);
     display: none;
 }
 
@@ -152,18 +165,42 @@ footer {
     display: block;
 }
 
-#suggestions li {
-    width: 24px;
-    margin: 0 0.5rem;
+#suggestions form {
+    margin: 0;
+    padding: 0;
 }
 
-#suggestions li:hover {
-    opacity: 0.6;
+#suggestions button {
+    border-radius: 0.5rem;
+    padding: 0.5rem 1rem;
+    margin-top: 1rem;
+    font-size: 1.5rem;
 }
 
-#suggestions li.disabled {
-    opacity: 0.2;
-    pointer-events: none;
+#suggestions label {
+    font-size: 1rem;
+}
+
+#suggestions p {
+    margin: 0rem;
+    padding: 0.5rem 0;
+}
+
+#thankyou {
+    display: none;
+}
+
+.slider-labels, .slider-container {
+    display: flex;
+    justify-content: space-between;
+}
+
+.slider-container input {
+    flex: 1;
+}
+
+.slider-labels {
+    margin-bottom: 1.5rem;
 }
 
 #resultsList li {
@@ -228,6 +265,9 @@ footer {
     li {
         width: 80vw;
         margin: 0.5rem;
+    }
+    #suggestions {
+        width: 80vw;
     }
     #resultsList li {
         width: 45%;

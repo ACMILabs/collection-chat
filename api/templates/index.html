@@ -22,23 +22,32 @@
     </form>
 
     <ol id="chats"></ol>
-    <ul id="suggestions">
-        <li>
-            <a href="#" onclick="suggestion(event, 'up')">
-                <img src="static/images/thumbs-up.svg" alt="Good response" title="Good response">
-            </a>
-        </li>
-        <li>
-            <a href="#" onclick="suggestion(event, 'down')">
-                <img src="static/images/thumbs-down.svg" alt="Bad response" title="Bad response">
-            </a>
-        </li>
-        <li>
-            <a href="#" onclick="suggestion(event, 'fix')">
-                <img src="static/images/edit.svg" alt="Provide a better response" title="Provide a better response">
-            </a>
-        </li>
-    </ul>
+    <div id="suggestions">
+        <form onsubmit="event.preventDefault(); handleSuggestion(event)">
+            <label for="ai_score">Should museums use generative AI to tell stories about their collections?</label>
+            <div class="slider-container">
+                <input type="range" name="ai_score" id="ai_score" min="1" max="5" step="1">
+            </div>
+            <div class="slider-labels">
+                <span>No</span>
+                <span>Unsure</span>
+                <span>Yes</span>
+            </div>
+            <label for="score">Did you discover an error in this ancedote?</label>
+            <div class="slider-container">
+                <input type="range" name="score" id="score" min="1" max="5" step="1">
+            </div>
+            <div class="slider-labels">
+                <span>No</span>
+                <span>Unsure</span>
+                <span>Yes</span>
+            </div>
+            <p>Would you like to provide more detail? We'll use your feedback to keep improving.</p>
+            <textarea name="suggestion" id="suggestion" rows="4" placeholder="Your feedback..."></textarea>
+            <button type="submit" title="Submit">Submit</button>
+        </form>
+        <p id="thankyou">Thank you for your feedback</p>
+    </div>
 
     <audio controls id="audioPlayer">
         <source src="static/audio/{% if voice == 'Seb Chan' %}seb-hmmm.mp3{% elif voice == 'John Barrington' %}john-hmmm.mp3{% else %}hmmm.mp3{% endif %}" type="audio/mp3">
@@ -135,7 +144,7 @@
          */
         searchForm.addEventListener('submit', async (event) => {
             event.preventDefault();
-            enableSuggestionsButtons(true);
+            enableSuggestions(true);
             chatsElement.innerHTML = '';
             resultsList.innerHTML = '';
             const query = queryInput.value.trim();
@@ -157,7 +166,7 @@
          */
         randomButton.addEventListener('click', async () => {
             event.preventDefault();
-            enableSuggestionsButtons(true);
+            enableSuggestions(true);
             chatsElement.innerHTML = '';
             resultsList.innerHTML = '';
             queryInput.value = '';
@@ -304,6 +313,8 @@
                     // Now toggle the class that triggers the transition
                     li.classList.add('show');
                 });
+                const suggestionsElement = document.getElementById('suggestions');
+                suggestionsElement.classList.add('show');
 
                 // Step 3: Stream TTS
                 if ('MediaSource' in window && !isFirefox()) {
@@ -507,7 +518,7 @@
                 const titleLink = li.querySelector('.titleLink');
                 circleLink.addEventListener('click', (event) => {
                     event.preventDefault();
-                    enableSuggestionsButtons(true);
+                    enableSuggestions(true);
                     chatsElement.innerHTML = '';
                     resultsList.innerHTML = '';
                     queryInput.value = '';
@@ -515,7 +526,7 @@
                 });
                 titleLink.addEventListener('click', (event) => {
                     event.preventDefault();
-                    enableSuggestionsButtons(true);
+                    enableSuggestions(true);
                     chatsElement.innerHTML = '';
                     resultsList.innerHTML = '';
                     queryInput.value = '';
@@ -586,47 +597,23 @@
         /**
          * Submit a suggestion
          */
-        async function suggestion(event, keyword) {
-            event.preventDefault();
+        async function handleSuggestion(event) {
             const chatsElement = document.getElementById('chats');
             const firstChat = chatsElement.querySelector('li');
             const text = firstChat ? firstChat.innerText : "";
-
-            // For the 'fix' action, create a new text box for the custom suggestion.
-            if (keyword === 'fix' && !hasSuggested) {
-                // Check if the custom suggestion input already exists.
-                let suggestionInput = document.getElementById('customSuggestion');
-                if (!suggestionInput) {
-                    suggestionInput = document.createElement('textarea');
-                    suggestionInput.type = 'text';
-                    suggestionInput.id = 'customSuggestion';
-                    suggestionInput.placeholder = 'Please add your suggested text and press ENTER';
-                    suggestionInput.style.marginTop = '10px';
-
-                    const suggestionsElement = document.getElementById('suggestions');
-                    suggestionsElement.parentNode.insertBefore(suggestionInput, suggestionsElement.nextSibling);
-                    suggestionInput.focus();
-                    suggestionInput.addEventListener('keydown', function handleSuggestion(e) {
-                        if (e.key === 'Enter') {
-                            e.preventDefault();
-                            const suggestionText = suggestionInput.value.trim();
-                            suggestionInput.removeEventListener('keydown', handleSuggestion);
-                            suggestionInput.remove();
-                            // Add a vote 'down' with a suggestion
-                            submitSuggestion(text, 'down', suggestionText);
-                        }
-                    });
-                }
-            } else {
-                // For 'up' or 'down', just submit directly without a custom suggestion.
-                submitSuggestion(text, keyword, null);
+            const suggestionText = document.getElementById('suggestion').value;
+            const ai_score = document.getElementById('ai_score').value;
+            const score = document.getElementById('score').value;
+            debugger;
+            if (!hasSuggested) {
+                submitSuggestion(text, ai_score, score, suggestionText);
             }
         }
 
         /**
          * Helper function to POST the suggestion data to the server.
          */
-        async function submitSuggestion(text, keyword, suggestion) {
+        async function submitSuggestion(text, ai_score, score, suggestion) {
             if (!hasSuggested) {
                 hasSuggested = true;
                 try {
@@ -641,7 +628,8 @@
                         body: JSON.stringify({
                             url: url.toString(),
                             text: text,
-                            vote: keyword,
+                            ai_score: parseInt(ai_score, 10),
+                            score: parseInt(score, 10),
                             data: {
                                 model: "{{ model }}",
                                 prompt: prompt,
@@ -656,25 +644,28 @@
                     console.error('suggestions error:', err);
                 }
                 // Disable the suggestion buttons after submission.
-                enableSuggestionsButtons(false);
+                enableSuggestions(false);
             }
         }
 
         /**
          * Enable or disable the suggestions buttons
          */
-        function enableSuggestionsButtons(enabled) {
+        function enableSuggestions(enabled) {
             const suggestionsElement = document.getElementById('suggestions');
-            const listItems = suggestionsElement.querySelectorAll('li');
-            listItems.forEach(item => {
-                if (enabled) {
-                    item.classList.remove('disabled');
-                    hasSuggested = false;
-                } else {
-                    item.classList.add('disabled');
-                    hasSuggested = true;
-                }
-            });
+            const suggestionsForm = suggestionsElement.getElementsByTagName('form')[0];
+            const thankyouMessage = document.getElementById('thankyou');
+            if (enabled) {
+                thankyouMessage.style.display = 'none';
+                suggestionsForm.reset();
+                suggestionsForm.style.display = 'block';
+                suggestionsElement.classList.remove('show');
+                hasSuggested = false;
+            } else {
+                thankyouMessage.style.display = 'block';
+                suggestionsForm.style.display = 'none';
+                hasSuggested = true;
+            }
         }
 
         /** If collection is from the National Portrait Gallery
