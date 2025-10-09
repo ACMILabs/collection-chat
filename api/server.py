@@ -52,6 +52,7 @@ ORGANISATION = os.getenv('ORGANISATION', 'ACMI')
 COLLECTION_API = os.getenv('COLLECTION_API', 'https://api.acmi.net.au/works/')
 COLLECTION_LINK = os.getenv('COLLECTION_LINK', 'https://url.acmi.net.au/w/')
 DEBUG = os.getenv('DEBUG', 'false').lower() == 'true'
+ALLOW_INPUT = os.getenv('ALLOW_INPUT', 'false').lower() == 'true'
 
 _TEMPLATE = """Given a chat history and the latest user question
 which might reference context in the chat history,
@@ -240,6 +241,7 @@ async def root(
     json: bool = True,
     query: str = '',
     random: bool = False,
+    works: str = None,
 ):
     """Returns the home view."""
 
@@ -255,16 +257,23 @@ async def root(
             'photographs, film, audio recordings or text.',
     }
 
-    if query:
+    if works:
+        work_ids = [f'{COLLECTION_API}{wid}' for wid in works.split(',')]
+        doc_dict = docsearch.get(
+            where={'source': {'$in': work_ids}},
+            include=['documents'],
+        )
+        results = [json_parser.loads(doc) for doc in doc_dict.get('documents', [])]
+
+    if query and not works:
         results = [json_parser.loads(result.page_content) for result in retriever.invoke(query)]
 
-    if random:
+    if random and not works:
         results = [json_parser.loads(result) for result in get_random_documents(docsearch)]
 
-    if json and query:
-        return results
-
     if json:
+        if query or random or works:
+            return results
         return home_json
 
     prompts = {
@@ -283,6 +292,7 @@ async def root(
             'prompts': prompts,
             'organisation': ORGANISATION,
             'collection_link': COLLECTION_LINK,
+            'allow_input': ALLOW_INPUT,
         },
     )
 
@@ -399,7 +409,7 @@ async def suggestions(request: Request):
 
 
 @app.get('/works/{work_id}')
-async def works(work_id: str):
+async def get_work(work_id: str):
     """Returns a work's JSON metadata."""
     doc_dict = docsearch.get(
         where={'source': f'{COLLECTION_API}{work_id}'},

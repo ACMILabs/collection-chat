@@ -1,4 +1,4 @@
-FROM python:3.11
+FROM python:3.13
 
 COPY ./requirements/base.txt /code/requirements/base.txt
 COPY ./requirements/test.txt /code/requirements/test.txt
