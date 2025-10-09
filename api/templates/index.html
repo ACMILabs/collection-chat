@@ -22,6 +22,25 @@
     </form>
 
     <ol id="chats"></ol>
+
+    <ul id="feedbackButtons" class="feedback-toolbar">
+        <li>
+            <a href="#" onclick="feedback(event, 'up')" title="Good response">
+                <img src="static/images/thumbs-up.svg" alt="Good response">
+            </a>
+        </li>
+        <li>
+            <a href="#" onclick="feedback(event, 'down')" title="Found an issue? Tell us more">
+                <img src="static/images/thumbs-down.svg" alt="Bad response">
+            </a>
+        </li>
+        <li>
+            <a href="#" onclick="feedback(event, 'fix')" title="Suggest an improvement">
+                <img src="static/images/edit.svg" alt="Provide a better response">
+            </a>
+        </li>
+    </ul>
+
     <div id="suggestions">
         <form onsubmit="event.preventDefault(); handleSuggestion(event)">
             <label for="ai_score">Should museums use generative AI to tell stories about their collections?</label>
@@ -112,9 +131,9 @@
             }
         }
 
-        /* Play the chat when tapped. */
+        /* Play / pause the chat when tapped. */
         var chats = document.getElementById('chats');
-        chats.onclick = function (event) {
+        chats.onclick = function () {
             var audio = document.getElementsByTagName('audio')[0];
             if (isPlaying) {
                 audio.pause();
@@ -127,24 +146,75 @@
         }
 
         /**
+         * Feedback toolbar behaviour
+         */
+        function feedback(event, action) {
+            event.preventDefault();
+            const firstChat = chatsElement.querySelector('li');
+            const text = firstChat ? firstChat.innerText : "";
+
+            if (action === 'up') {
+                // Immediate positive feedback, then disable buttons
+                submitVote(text, 'up').finally(() => {
+                    setFeedbackButtonsEnabled(false);
+                });
+            } else if (action === 'down' || action === 'fix') {
+                // Reveal the detailed form; no submission yet
+                showSuggestionsForm(true);
+                // Optional: focus the textarea on 'fix'
+                if (action === 'fix') {
+                    setTimeout(() => {
+                        const ta = document.getElementById('suggestion');
+                        if (ta) ta.focus();
+                    }, 0);
+                }
+            }
+        }
+
+        async function submitVote(text, keyword) {
+            try {
+                const url = new URL(window.location);
+                let prompt = `{{ prompts.summarise }}`;
+                if (promptType === 'connection') {
+                    prompt = `{{ prompts.connection }}`;
+                }
+                const res = await fetch('/suggestions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        url: url.toString(),
+                        text: text,
+                        vote: keyword,                 // keep old quick-vote contract
+                        data: {
+                            model: "{{ model }}",
+                            prompt: prompt,
+                        },
+                        suggestion: null,
+                    }),
+                });
+                if (!res.ok) {
+                    throw new Error('Error from /suggestions: ' + res.status);
+                }
+            } catch (err) {
+                console.error('submitVote error:', err);
+            }
+        }
+
+        /**
          * On page load, or when user presses back/forward, we parse the URL
          * and fetch data if needed. This gives us a single-page-app feel.
          */
         window.addEventListener('popstate', handlePopState);
-
-        // Call handlePopState() once at initial load
         document.addEventListener('DOMContentLoaded', () => {
             handlePopState();
         });
 
         /**
-         * For the query form: when user clicks "Search",
-         * we do a GET /?json=true&query=... (without reloading),
-         * update the address bar, then summarise+stream TTS.
+         * Search submit
+         * (No longer auto-shows suggestions; only shows after down/pencil)
          */
         searchForm.addEventListener('submit', async (event) => {
             event.preventDefault();
-            enableSuggestions(true);
             chatsElement.innerHTML = '';
             resultsList.innerHTML = '';
             const query = queryInput.value.trim();
@@ -153,20 +223,18 @@
             // Update the URL for shareability
             const newUrl = new URL(window.location);
             newUrl.searchParams.set('query', query);
-            newUrl.searchParams.delete('random'); // Remove random if present
-            newUrl.searchParams.set('json', 'false'); // or remove it entirely if you prefer
+            newUrl.searchParams.delete('random');
+            newUrl.searchParams.set('json', 'false');
             window.history.pushState({}, '', newUrl);
 
-            // Now fetch data from the server
             await fetchCollectionData(query, false);
         });
 
         /**
-         * For the "Suggest Something Random" button:
+         * Random button
          */
-        randomButton.addEventListener('click', async () => {
+        randomButton.addEventListener('click', async (event) => {
             event.preventDefault();
-            enableSuggestions(true);
             chatsElement.innerHTML = '';
             resultsList.innerHTML = '';
             queryInput.value = '';
@@ -196,25 +264,19 @@
             const isRandom = urlParams.has('random');
             const works = urlParams.get('works') || '';
 
-            // Pre-populate the input field
             queryInput.value = query;
 
-            // Only fetch if there's something to do
             if (query || isRandom || works) {
                 await fetchCollectionData(query, isRandom, works);
             }
         }
 
         /**
-         * Core function to:
-         * 1) GET /?json=true with either ?query=... or ?random=true
-         * 2) Display results in #resultsList
-         * 3) POST /summarise
-         * 4) Stream audio from /speak with MediaSource
+         * Fetch, render, summarise, speak
+         * (No auto-show of #suggestions; toolbar remains enabled)
          */
         async function fetchCollectionData(query, isRandom, works) {
             try {
-                // Step 1: GET from /?json=true ...
                 let urlParams = new URLSearchParams();
                 urlParams.set('json', 'true');
                 if (isRandom) {
@@ -242,14 +304,11 @@
                     return;
                 }
 
-                // Display the results
                 displayResults(results, isRandom, query, false);
 
-                // Step 2: Summarise
                 var summary = await getSummary(urlParams.query, results);
                 if (!summary) return;
 
-                // Add the summarised text to our chat transcript <ol>
                 const li = document.createElement('li');
                 summary = summary.replace(/\\\"/g, '"');
                 if (summary.startsWith('"')) {
@@ -261,70 +320,49 @@
                 li.textContent = summary;
                 chatsElement.innerHTML = '';
                 chatsElement.appendChild(li);
-                requestAnimationFrame(() => {
-                    // Now toggle the class that triggers the transition
-                    li.classList.add('show');
-                });
-                const suggestionsElement = document.getElementById('suggestions');
-                suggestionsElement.classList.add('show');
+                requestAnimationFrame(() => li.classList.add('show'));
 
-                // Step 3: Stream TTS
+                // Reset UI: hide form, enable toolbar
+                showSuggestionsForm(false, /*silent*/true);
+                setFeedbackButtonsEnabled(true);
+
                 if ('MediaSource' in window && !isFirefox()) {
-                    // MSE streaming approach
                     await speakWithStreamTTS(summary.replace('ACMI', 'acmee'));
                 } else {
-                    // Fallback: fetch entire audio as Blob
                     await speakWithoutStreamTTS(summary.replace('ACMI', 'acmee'));
                 }
-
             } catch (error) {
                 console.error('fetchCollectionData error:', error);
             }
         }
 
-        /**
-         * Get the connection between a work and the next similar work.
-         */
-         async function getConnection(work_id) {
+        async function getConnection(work_id) {
             try {
                 promptType = 'connection';
-                // GET the data
-                const response = await fetch(`/connection?work_id=${work_id}`, {
-                    method: 'GET',
-                });
+                const response = await fetch(`/connection?work_id=${work_id}`, { method: 'GET' });
                 const results = await response.json();
                 var connection = results.connection;
 
-                // Display the results
                 displayResults(results.works, false, '', true);
-                // Add the summarised text to our chat transcript <ol>
+
                 const li = document.createElement('li');
                 connection = connection.replace(/\\\"/g, '"');
-                if (connection.startsWith('"')) {
-                    connection = connection.slice(1);
-                }
-                if (connection.endsWith('"')) {
-                    connection = connection.slice(0, -1);
-                }
+                if (connection.startsWith('"')) connection = connection.slice(1);
+                if (connection.endsWith('"')) connection = connection.slice(0, -1);
                 li.textContent = connection;
                 chatsElement.innerHTML = '';
                 chatsElement.appendChild(li);
-                requestAnimationFrame(() => {
-                    // Now toggle the class that triggers the transition
-                    li.classList.add('show');
-                });
-                const suggestionsElement = document.getElementById('suggestions');
-                suggestionsElement.classList.add('show');
+                requestAnimationFrame(() => li.classList.add('show'));
 
-                // Step 3: Stream TTS
+                // Reset UI: hide form, enable toolbar
+                showSuggestionsForm(false, /*silent*/true);
+                setFeedbackButtonsEnabled(true);
+
                 if ('MediaSource' in window && !isFirefox()) {
-                    // MSE streaming approach
                     await speakWithStreamTTS(connection.replace('ACMI', 'acmee'));
                 } else {
-                    // Fallback: fetch entire audio as Blob
                     await speakWithoutStreamTTS(connection.replace('ACMI', 'acmee'));
                 }
-
             } catch (error) {
                 console.error('getConnection error:', error);
             }
@@ -341,11 +379,6 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ query, results }),
                 });
-                // If your /summarise endpoint returns JSON with .content:
-                //   const data = await response.json();
-                //   return data.content;
-
-                // If it returns plain text (like the default code), do:
                 const text = await response.text();
                 return text.replace('"\"', '');
             } catch (error) {
@@ -365,39 +398,22 @@
                     headers: { 'Content-Type': 'text/plain' },
                     body: text,
                 });
-                if (!speakResponse.ok) {
-                    throw new Error('Error from /speak: ' + speakResponse.status);
-                }
-                if (!speakResponse.body) {
-                    throw new Error('ReadableStream not supported or no body returned');
-                }
+                if (!speakResponse.ok) throw new Error('Error from /speak: ' + speakResponse.status);
+                if (!speakResponse.body) throw new Error('ReadableStream not supported or no body returned');
 
-                // Prepare MediaSource for streaming audio
                 const mediaSource = new MediaSource();
                 audioPlayer.src = URL.createObjectURL(mediaSource);
                 isPlaying = true;
+                audioPlayer.play().catch(() => {});
 
-                // We'll start playback after source is open, so we ensure auto-play
-                audioPlayer.play().catch(err => {
-                    console.warn('Auto-play might be blocked:', err);
-                });
-
-                // When the media source is open, we can feed chunks into a SourceBuffer
                 mediaSource.addEventListener('sourceopen', async () => {
                     const sourceBuffer = mediaSource.addSourceBuffer('audio/mpeg');
-                    // We'll queue up chunks if the SourceBuffer is busy
                     let isAppending = false;
                     const chunkQueue = [];
-
                     sourceBuffer.addEventListener('updateend', () => {
                         isAppending = false;
-                        if (chunkQueue.length > 0) {
-                            appendNextChunk();
-                        } else {
-                            // No more chunks in queue
-                        }
+                        if (chunkQueue.length > 0) appendNextChunk();
                     });
-
                     function appendNextChunk() {
                         if (!isAppending && chunkQueue.length > 0 && !sourceBuffer.updating) {
                             isAppending = true;
@@ -405,28 +421,14 @@
                             sourceBuffer.appendBuffer(chunk);
                         }
                     }
-
                     const reader = speakResponse.body.getReader();
-
                     while (true) {
                         const { value, done } = await reader.read();
-                        if (done) {
-                            // We've finished receiving audio data from /speak
-                            break;
-                        }
-                        // Enqueue the chunk
+                        if (done) break;
                         chunkQueue.push(value.buffer);
                         appendNextChunk();
                     }
-
-                    // Once all chunks are read, we wait for the buffer to finish updating
-                    // then end the stream
                     sourceBuffer.addEventListener('updateend', () => {
-                        if (sourceBuffer.buffered.length > 0) {
-                            // Optional: set mediaSource duration (if needed)
-                            // mediaSource.duration = sourceBuffer.buffered.end(0);
-                        }
-                        // Let the MediaSource know we're done
                         if (mediaSource.readyState === 'open') {
                             mediaSource.endOfStream();
                             isPlaying = false;
@@ -448,10 +450,7 @@
                     headers: { 'Content-Type': 'text/plain' },
                     body: text
                 });
-                if (!speakResponse.ok) {
-                    throw new Error('Error from /speak: ' + speakResponse.status);
-                }
-                // Get entire file as Blob
+                if (!speakResponse.ok) throw new Error('Error from /speak: ' + speakResponse.status);
                 const blob = await speakResponse.blob();
                 // Set your <audio> element to this Blob
                 audioPlayer.src = URL.createObjectURL(blob);
@@ -518,7 +517,6 @@
                 const titleLink = li.querySelector('.titleLink');
                 circleLink.addEventListener('click', (event) => {
                     event.preventDefault();
-                    enableSuggestions(true);
                     chatsElement.innerHTML = '';
                     resultsList.innerHTML = '';
                     queryInput.value = '';
@@ -526,26 +524,25 @@
                 });
                 titleLink.addEventListener('click', (event) => {
                     event.preventDefault();
-                    enableSuggestions(true);
                     chatsElement.innerHTML = '';
                     resultsList.innerHTML = '';
                     queryInput.value = '';
                     getConnection(item.id);
                 });
                 getImage(id).then(imageUrl => {
-                if (imageUrl !== '') {
-                    const image = li.getElementsByClassName('image')[0];
-                    image.style.opacity = '0';
-                    setTimeout(() => {
-                        image.style.backgroundImage = `url(${imageUrl})`;
-                        image.style.backgroundRepeat = 'no-repeat';
-                        image.style.backgroundSize = 'cover';
-                        image.style.backgroundPosition = 'center';
-                        image.title = title;
-                        image.alt = title;
-                        image.style.opacity = '1';
-                    }, 300);
-                }
+                    if (imageUrl !== '') {
+                        const image = li.getElementsByClassName('image')[0];
+                        image.style.opacity = '0';
+                        setTimeout(() => {
+                            image.style.backgroundImage = `url(${imageUrl})`;
+                            image.style.backgroundRepeat = 'no-repeat';
+                            image.style.backgroundSize = 'cover';
+                            image.style.backgroundPosition = 'center';
+                            image.title = title;
+                            image.alt = title;
+                            image.style.opacity = '1';
+                        }, 300);
+                    }
                 });
             });
         }
@@ -595,24 +592,20 @@
         }
 
         /**
-         * Submit a suggestion
+         * Detailed suggestion form (down vote/pencil path)
          */
         async function handleSuggestion(event) {
-            const chatsElement = document.getElementById('chats');
             const firstChat = chatsElement.querySelector('li');
             const text = firstChat ? firstChat.innerText : "";
             const suggestionText = document.getElementById('suggestion').value;
             const ai_score = document.getElementById('ai_score').value;
             const score = document.getElementById('score').value;
-            debugger;
+
             if (!hasSuggested) {
-                submitSuggestion(text, ai_score, score, suggestionText);
+                await submitSuggestion(text, ai_score, score, suggestionText);
             }
         }
 
-        /**
-         * Helper function to POST the suggestion data to the server.
-         */
         async function submitSuggestion(text, ai_score, score, suggestion) {
             if (!hasSuggested) {
                 hasSuggested = true;
@@ -628,8 +621,8 @@
                         body: JSON.stringify({
                             url: url.toString(),
                             text: text,
-                            ai_score: parseInt(ai_score, 10),
-                            score: parseInt(score, 10),
+                            ai_score: parseInt(ai_score || '0', 10),
+                            score: parseInt(score || '0', 10),
                             data: {
                                 model: "{{ model }}",
                                 prompt: prompt,
@@ -643,33 +636,64 @@
                 } catch (err) {
                     console.error('suggestions error:', err);
                 }
-                // Disable the suggestion buttons after submission.
-                enableSuggestions(false);
+                // Hide form, show thank you, and disable toolbar
+                showSuggestionsForm(false, false);
+                setFeedbackButtonsEnabled(false);
             }
         }
 
         /**
-         * Enable or disable the suggestions buttons
+         * Helpers to toggle the detailed form and the toolbar state
          */
-        function enableSuggestions(enabled) {
+        function showSuggestionsForm(show, silent = false) {
             const suggestionsElement = document.getElementById('suggestions');
-            const suggestionsForm = suggestionsElement.getElementsByTagName('form')[0];
+            const suggestionsForm = suggestionsElement.querySelector('form');
             const thankyouMessage = document.getElementById('thankyou');
-            if (enabled) {
+
+            if (show) {
                 thankyouMessage.style.display = 'none';
                 suggestionsForm.reset();
                 suggestionsForm.style.display = 'block';
-                suggestionsElement.classList.remove('show');
+                suggestionsElement.style.display = 'block';
+                suggestionsElement.classList.add('show');
                 hasSuggested = false;
             } else {
-                thankyouMessage.style.display = 'block';
                 suggestionsForm.style.display = 'none';
-                hasSuggested = true;
+                if (!silent) {
+                    // Keep container visible to show thank-you; otherwise hide
+                    suggestionsElement.style.display = 'block';
+                    thankyouMessage.style.display = 'block';
+                } else {
+                    // fully hide when resetting silently
+                    suggestionsElement.style.display = 'none';
+                    thankyouMessage.style.display = 'none';
+                }
             }
         }
 
-        /** If collection is from the National Portrait Gallery
-         */
+        function setFeedbackButtonsEnabled(enabled) {
+            const toolbar = document.getElementById('feedbackButtons');
+            if (enabled) {
+                toolbar.classList.add('show');
+            }
+            const listItems = toolbar ? toolbar.querySelectorAll('li') : [];
+            listItems.forEach(item => {
+                if (enabled) {
+                    item.classList.remove('disabled');
+                    const link = item.querySelector('a');
+                    if (link) link.style.pointerEvents = 'auto';
+                    item.style.opacity = '1';
+                    hasSuggested = false;
+                } else {
+                    item.classList.add('disabled');
+                    const link = item.querySelector('a');
+                    if (link) link.style.pointerEvents = 'none';
+                    item.style.opacity = '0.4';
+                    hasSuggested = true;
+                }
+            });
+        }
+
         function isNationalPortraitGallery() {
             return '{{ collection_link }}'.includes('portrait');
         }

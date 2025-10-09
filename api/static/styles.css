@@ -132,9 +132,8 @@ footer {
     background-color: rgba(59,130,246,1.0);
     color: white;
     padding: 1rem 1.5rem;
-    margin: 0;
-    margin-top: 1rem;
-    border-radius: 1rem 1rem 0rem 0rem;
+    margin: 1rem;
+    border-radius: 1rem;
     line-height: 1.5rem;
     text-align: justify;
     opacity: 0;
@@ -148,20 +147,38 @@ footer {
     transform: scaleY(1);
 }
 
+#feedbackButtons {
+    display: none;
+}
+
+#feedbackButtons li {
+    width: 24px;
+    margin: 0 0.5rem;
+}
+
+#feedbackButtons li:hover {
+    opacity: 0.6;
+}
+
+#feedbackButtons li.disabled {
+    opacity: 0.2;
+    pointer-events: none;
+}
+
 #suggestions {
-    margin: 0 auto;
+    margin: 1rem auto;
     width: 42%;
     padding: 1.5rem;
     background-color: rgb(220, 220, 220);
     color: rgb(82, 82, 82);
-    border-radius: 0rem 0rem 1rem 1rem;
+    border-radius: 1rem;
     line-height: 1.5rem;
     opacity: 0;
     transform: scaleY(0);
     display: none;
 }
 
-#suggestions.show {
+#suggestions.show, #feedbackButtons.show {
     display: block;
 }
 
